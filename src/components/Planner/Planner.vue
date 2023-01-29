@@ -2,6 +2,7 @@
   <!-- dirty hack for forced rerender -->
   <template v-if="this.plannerStore.render_planner_flag">
     <div
+      @click="onClick"
       class="planner-container-grid"
       :style="`grid-template-columns: 2fr repeat(${plannerStore.getNumberOfNonHeaderColumnsToRender()}, 1fr);`"
     >
@@ -13,7 +14,7 @@
         {{ m.name }}
       </div>
       <div
-        class="planner-cell planner-header-row planner-header-row-week"
+        :class="`planner-cell planner-header-row planner-header-row-week planner-header-row-week--${w.kw_idx}`"
         v-for="w in plannerStore.getWeekHeaderColumnsToRender()"
         :style="w.style_"
       >
@@ -76,6 +77,29 @@ export default {
     rows: Array,
     year: Number,
   },
+  methods: {
+    onClick(e) {
+      e.preventDefault();
+
+      // Wählen des zuständigen Handlers
+      const target_classList = e.target.classList;
+      if (target_classList.contains("planner-header-row-week")) {
+        this.onClickKWHeaderField(e);
+      }
+      e.stopPropagation();
+    },
+    onClickKWHeaderField(e) {
+      // determine KW-Index of clicked KW-HeaderField through class 'planner-header-row-week--??'
+      const kw_idx = Number(
+        Array.from(e.target.classList)
+          .find((c) => c.startsWith("planner-header-row-week--"))
+          .split("--")[1]
+      );
+
+      // toggle collapsed-state of KW-HeaderField
+      plannerStore.kw_flags[kw_idx] = !plannerStore.kw_flags[kw_idx];
+    },
+  },
   created() {
     // write to plannerStore
     plannerStore.column_offset = 1;
@@ -100,6 +124,12 @@ export default {
   display: grid;
   text-align: center;
   font-size: 1.6rem;
+  cursor: default;
+  user-select: none;
+}
+
+.planner-header-row-week {
+  cursor: pointer;
 }
 
 .planner-cell {

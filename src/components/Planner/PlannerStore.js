@@ -143,6 +143,7 @@ export const plannerStore = reactive({
       weeks.push({
         name: week_name,
         style_,
+        kw_idx,
       });
     });
     return weeks;
