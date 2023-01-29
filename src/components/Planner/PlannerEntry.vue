@@ -22,8 +22,12 @@ export default {
   },
   methods: {
     computeStyle() {
-      const colStart = this.daysBlockedStart + plannerStore.column_offset;
-      const colEnd = this.daysBlockedEnd + plannerStore.column_offset;
+      const colStart =
+        plannerStore.getDataColumnForDayOfYear(this.daysBlockedStart) +
+        plannerStore.column_offset;
+      const colEnd =
+        plannerStore.getDataColumnForDayOfYear(this.daysBlockedEnd) +
+        plannerStore.column_offset;
       const colIdxArray = this.rowsBlocked
         .map((idx) => plannerStore.row_offset + idx)
         .sort((a, b) => a - b);
