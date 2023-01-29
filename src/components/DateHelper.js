@@ -50,7 +50,7 @@ const table_data = (year) => {
 
   /* Konvention (EU): die 1.KW ist die, die den 4.Januar enthält */
   if (res.table_data.weeks[0].includes(4)) {
-    res.table_data.week_0 = false;
+    res.week_0 = false;
   }
 
   return res;
@@ -66,6 +66,7 @@ const init = (year, column_offset) => {
   const td = table_data(year, column_offset);
   return {
     table_data: td.table_data,
+    week_0: td.week_0,
     monthNames: [
       "Januar",
       "Februar",

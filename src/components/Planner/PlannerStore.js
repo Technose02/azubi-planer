@@ -126,9 +126,7 @@ export const plannerStore = reactive({
   getWeekHeaderColumnsToRender() {
     const weeks = [];
     this.date_helper.table_data.weeks.forEach((days, kw_idx) => {
-      const week_number = this.date_helper.table_data.week_0
-        ? kw_idx
-        : kw_idx + 1;
+      const week_number = this.date_helper.week_0 ? kw_idx : kw_idx + 1;
       const week_name =
         week_number >= 1 && week_number <= 53
           ? `KW ${week_number.toString().padStart(2, "0")}`
@@ -173,10 +171,14 @@ export const plannerStore = reactive({
         display_day_text = false; // wenn KW collapsed ist dann keinen Text im Tag-Feld ausgeben
       }
 
+      const week_number = this.date_helper.week_0
+        ? day_structure.week_idx
+        : day_structure.week_idx + 1;
+
       days.push({
         day_of_year,
         day_of_month: day_structure.day_of_month,
-        week_number: day_structure.week_idx + 1,
+        week_number,
         month_number: day_structure.month_idx + 1,
         day_of_week: this.date_helper.weekDayNames[day_structure.day_of_week],
         data_column,
