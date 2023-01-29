@@ -50,6 +50,20 @@ export default {
           color="#9BE"
           >Abschlussprojekt</planner-entry
         >
+        <planner-entry
+          :row-keys="['ffarina']"
+          :start-date="new Date(2023, 0, 2)"
+          :end-date="new Date(2023, 0, 4)"
+          color="#08F"
+          >PJM</planner-entry
+        >
+        <planner-entry
+          :row-keys="['ffarina']"
+          :start-date="new Date(2023, 11, 25)"
+          :end-date="new Date(2023, 11, 31)"
+          color="#08F"
+          >PJM</planner-entry
+        >
       </planner>
     </div>
   </main>

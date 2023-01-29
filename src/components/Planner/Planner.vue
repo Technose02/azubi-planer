@@ -1,56 +1,60 @@
 <template>
-  <div
-    class="planner-container-grid"
-    :style="`grid-template-columns: 2fr repeat(${plannerStore.date_helper.daysForRender.length}, 1fr);`"
-  >
+  <!-- dirty hack for forced rerender -->
+  <template v-if="this.plannerStore.render_planner_flag">
     <div
-      class="planner-cell planner-header-row planner-header-row-month"
-      v-for="m in plannerStore.date_helper.monthsForRender"
-      :style="m.style_"
+      class="planner-container-grid"
+      :style="`grid-template-columns: 2fr repeat(${plannerStore.date_helper.daysForRender.length}, 1fr);`"
     >
-      {{ m.name }}
-    </div>
-    <div
-      class="planner-cell planner-header-row planner-header-row-week"
-      v-for="w in plannerStore.date_helper.weeksForRender"
-      :style="w.style_"
-    >
-      {{ w.name }}
-    </div>
-    <div
-      class="planner-cell planner-header-row planner-header-row-day"
-      v-for="d in plannerStore.date_helper.daysForRender"
-      :style="d.style_"
-    >
-      <div style="display: flex; flex-direction: column">
-        <span class="planner-header-day-week">{{ d.day_of_week }}</span>
-        <span class="planner-header-day-month">{{ d.day_of_month }}</span>
-      </div>
-    </div>
-    <div
-      class="planner-cell planner-header-corner"
-      style="grid-column: 1; grid-row: 1 / 4"
-    ></div>
-    <div
-      class="planner-cell planner-header-column"
-      v-for="(r, idx) in this.rowTitles"
-      :style="`grid-column: 1; grid-row: ${idx + 4};`"
-    >
-      {{ r }}
-    </div>
-
-    <!-- Rendern der "Entries" -->
-    <slot></slot>
-
-    <!-- Rendern der freien "Data-Cells" -->
-    <template v-for="(r, idx) in this.rowTitles">
       <div
+        class="planner-cell planner-header-row planner-header-row-month"
+        v-for="m in plannerStore.date_helper.monthsForRender"
+        :style="m.style_"
+      >
+        {{ m.name }}
+      </div>
+      <div
+        class="planner-cell planner-header-row planner-header-row-week"
+        v-for="w in plannerStore.date_helper.weeksForRender"
+        :style="w.style_"
+      >
+        {{ w.name }}
+      </div>
+      <div
+        class="planner-cell planner-header-row planner-header-row-day"
         v-for="d in plannerStore.date_helper.daysForRender"
-        :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.in_week} month--${d.in_month}`"
-        :style="`grid-row: ${idx + this.plannerStore.row_offset};`"
+        :style="d.style_"
+      >
+        <div style="display: flex; flex-direction: column">
+          <span class="planner-header-day-week">{{ d.day_of_week }}</span>
+          <span class="planner-header-day-month">{{ d.day_of_month }}</span>
+        </div>
+      </div>
+      <div
+        class="planner-cell planner-header-corner"
+        style="grid-column: 1; grid-row: 1 / 4"
       ></div>
-    </template>
-  </div>
+      <div
+        class="planner-cell planner-header-column"
+        v-for="(r, idx) in this.rowTitles"
+        :style="`grid-column: 1; grid-row: ${idx + 4};`"
+      >
+        {{ r }}
+      </div>
+
+      <!-- Rendern der "Entries" -->
+      <slot></slot>
+
+      <!-- Rendern der freien "Data-Cells" -->
+      <template v-for="(r, idx) in this.rowTitles">
+        <div
+          _v-for_="//d in plannerStore.date_helper.daysForRender"
+          v-for="d in plannerStore.freeDaysToRender(idx)"
+          :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.in_week} month--${d.in_month}`"
+          :style="`grid-row: ${idx + this.plannerStore.row_offset};`"
+        ></div>
+      </template>
+    </div>
+  </template>
 </template>
 <script>
 import DateHelper from "../DateHelper";
