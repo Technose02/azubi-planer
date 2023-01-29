@@ -1,6 +1,7 @@
 class Interval {
   constructor(start, end) {
-    if (end <= start) {
+    if (end < start) {
+      // entartet (start===end) "noch erlaubt"
       throw error("invalid interval bounds");
     }
     this.start = start;
