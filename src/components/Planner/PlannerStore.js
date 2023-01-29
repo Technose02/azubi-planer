@@ -120,4 +120,30 @@ export const plannerStore = reactive({
     });
     return months;
   },
+  getWeekHeaderColumnsToRender() {
+    const weeks = [];
+    this.date_helper.table_data.weeks.forEach((days, kw_idx) => {
+      const week_number = this.date_helper.table_data.week_0
+        ? kw_idx
+        : kw_idx + 1;
+      const week_name =
+        week_number >= 1 && week_number <= 53
+          ? `KW ${week_number.toString().padStart(2, "0")}`
+          : "";
+      const startColumn =
+        this.column_offset + this.getDataColumnForDayOfYear(days[0]);
+      const endColumn =
+        this.column_offset + this.getDataColumnForDayOfYear(days.at(-1));
+      let style_ = `grid-column: ${startColumn} / ${endColumn + 1};`;
+      if (!this.kw_flags[kw_idx]) {
+        // wenn gerade diese KW collapsed ist, dann reduziert sie sich auf eine Spalte!
+        style_ = `grid-column: ${startColumn};`;
+      }
+      weeks.push({
+        name: week_name,
+        style_,
+      });
+    });
+    return weeks;
+  },
 });

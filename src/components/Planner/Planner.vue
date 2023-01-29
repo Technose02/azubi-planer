@@ -14,7 +14,7 @@
       </div>
       <div
         class="planner-cell planner-header-row planner-header-row-week"
-        v-for="w in plannerStore.date_helper.weeksForRender"
+        v-for="w in plannerStore.getWeekHeaderColumnsToRender()"
         :style="w.style_"
       >
         {{ w.name }}
@@ -85,7 +85,7 @@ export default {
       plannerStore.column_offset
     );
 
-    plannerStore.date_helper.weeksForRender.forEach((w) => {
+    plannerStore.date_helper.table_data.weeks.forEach((w) => {
       plannerStore.kw_flags.push(true); /* initial alle KWs anzeigen */
     });
   },

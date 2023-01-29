@@ -76,25 +76,6 @@ const table_data = (year, column_offset) => {
   return res;
 };
 
-const weeksForRender = (table_data, column_offset) => {
-  const weeks = [];
-  table_data.weeks.forEach((_, idx) => {
-    const days = table_data.weeks[idx];
-    const week_number = table_data.week_0 ? idx : idx + 1;
-    const week_name =
-      week_number >= 1 && week_number <= 53
-        ? `KW ${week_number.toString().padStart(2, "0")}`
-        : "";
-    weeks.push({
-      name: week_name,
-      style_: `grid-column: ${days[0] + column_offset} / ${
-        days.at(-1) + column_offset + 1
-      };`,
-    });
-  });
-  return weeks;
-};
-
 const dayOfYearFromDate = function (date) {
   const month = date.getMonth(); /* 0,...,11 */
   const dayOfMonth = date.getDate(); /* 1,...,31 */
@@ -107,7 +88,6 @@ const init = (year, column_offset) => {
     table_data: td.table_data,
     daysForRender: td.days,
     monthNames: monthNames,
-    weeksForRender: weeksForRender(td.table_data, column_offset),
     dayOfYearFromDate: dayOfYearFromDate.bind(td.table_data),
   };
 };
