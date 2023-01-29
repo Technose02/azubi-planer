@@ -1,27 +1,10 @@
-const weekDayNames = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-const monthNames = [
-  "Januar",
-  "Februar",
-  "März",
-  "April",
-  "Mai",
-  "Juni",
-  "Juli",
-  "August",
-  "September",
-  "Oktober",
-  "November",
-  "Dezember",
-];
-
 const table_data = (year, column_offset) => {
   const res = {
     table_data: {
       months: [],
       weeks: [],
+      days: [],
     },
-
-    days: [],
 
     /* wenn week_0 === true:  es gibt eine 'KW0' und der Index des
                             Arrays entspricht dem 'KW-Name'
@@ -48,15 +31,11 @@ const table_data = (year, column_offset) => {
           res.table_data.weeks[w] = [];
         }
         d += 1;
-        res.days.push({
+        res.table_data.days.push({
           day_of_year: d,
           day_of_month: dm,
-          day_of_week: weekDayNames[weekDay],
-          in_month: m + 1 /* offset damit Januar === 1 etc. */,
+          day_of_week: weekDay,
           in_week: w,
-          style_: `grid-column: ${d + column_offset} / ${
-            d + column_offset + 1
-          };`,
         });
         res.table_data.weeks[w].push(d);
         res.table_data.months[m].push(d);
@@ -86,8 +65,21 @@ const init = (year, column_offset) => {
   const td = table_data(year, column_offset);
   return {
     table_data: td.table_data,
-    daysForRender: td.days,
-    monthNames: monthNames,
+    monthNames: [
+      "Januar",
+      "Februar",
+      "März",
+      "April",
+      "Mai",
+      "Juni",
+      "Juli",
+      "August",
+      "September",
+      "Oktober",
+      "November",
+      "Dezember",
+    ],
+    weekDayNames: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
     dayOfYearFromDate: dayOfYearFromDate.bind(td.table_data),
   };
 };

@@ -38,30 +38,31 @@ export const plannerStore = reactive({
 
     this.render_planner_flag = true;
   },
+
+  /* NEEDS MASSIVE WORKOVER CONCERNING COLLAPSIBLE KWs */
   freeDaysToRender(row_idx) {
-    const allDays = this.date_helper.daysForRender.map(
-      (dfr) => dfr.day_of_year
-    );
+    const allDays = [
+      ...Array(this.getNumberOfNonHeaderColumnsToRender()).keys(),
+    ].map((d) => d + 1);
     if (!this.block_data.get(row_idx)) {
-      //console.log(`block-data empty or not yet initialized`);
       return allDays;
     }
-    //console.log(`#### START freeDaysToRender(${row_idx})`);
 
     const ret = [];
     let k = 0;
 
     const intervals = this.block_data.get(row_idx);
 
+    const daysForRender = this.getDayHeaderColumnsToRender();
     for (let iid in intervals) {
       const blockedInterval = intervals[iid];
       while (k < allDays.length) {
         const d = allDays[k];
         /* wir pushen nicht die Werte von allDays (nur day_of_year-Angabe),
-           sondern die Korrespondierenden Objects aus this.date_helper.daysForRender
+           sondern die Korrespondierenden Objects, die über getDayHeaderColumnsToRender() erzeugten
            in das Ergebnis-Array (siehe auch unten beim Hinzufügen des Restes)
         */
-        const d_to_push = this.date_helper.daysForRender[k];
+        const d_to_push = daysForRender[k];
         if (d >= blockedInterval.start) {
           break;
         }
@@ -76,7 +77,7 @@ export const plannerStore = reactive({
         return ret; // fertig, weil dann das Ende des Blocks mit dem "Ende aller Tage" zusammenfällt
       }
     }
-    return [...ret, ...this.date_helper.daysForRender.slice(k)]; // slice(k) -> Alle Element ab k (bis zum Letzen also)
+    return [...ret, ...daysForRender.slice(k)]; // slice(k) -> Alle Element ab k (bis zum Letzen also)
   },
   getNumberOfNonHeaderColumnsToRender() {
     let k = 0;
@@ -155,7 +156,7 @@ export const plannerStore = reactive({
       this.date_helper.table_data.weeks.length
     ).fill(false);
 
-    this.date_helper.daysForRender.forEach((day_structure, day_idx) => {
+    this.date_helper.table_data.days.forEach((day_structure, day_idx) => {
       const day_of_year = day_structure.day_of_year;
       const column =
         this.column_offset + this.getDataColumnForDayOfYear(day_of_year);
@@ -170,7 +171,7 @@ export const plannerStore = reactive({
       }
 
       days.push({
-        day_of_week: day_structure.day_of_week,
+        day_of_week: this.date_helper.weekDayNames[day_structure.day_of_week],
         day_of_month: day_structure.day_of_month,
         style_: `grid-column: ${column};`,
         render: render_day,
