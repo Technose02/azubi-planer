@@ -7,6 +7,29 @@ Ein Versuch einer flexiblen grafischen Oberfläche für die Blockplanung der Azu
 
 * Aktuell ist der Datenfluss zwischen Planner und PlannerEntry unsauber über den PlannerStore realisiert - geht das auch anders?
 * Der Planner brauch zum korrekten Anzeigen der nicht geblockten Tage die Informationen aller Blöcke. Diese kommen aber erst durch die PlannerEntry-Items ins Spiel. Eigentlich sollte also der Planner erst nach "korrektem Einlesen aller PlannerEntries" gerendert werden, aber wie lauscht man auf sowas? Aktuell ist ein Dirty-Hack implementiert, der eine boolsche Variable (`render_planner_flag`) im PlannerStorage ändert sobald sich die Blockdaten geändert haben. Der Planner selber wird durch ein template-tag mit v-if gezwungen, bei Änderung an dieser Variablen zu rerendern
+* Gerade beim "Kollabieren/Erweitern" der KWs ist die Seite auffallend langsam. Viele der Methoden aus dem PlannerStore werden unnötig oft gerufen, und falls nicht unnötig oft, so zumindest mit unnötig oft wiederholter Intensität. Hier könnte zumindest durch angemessenes Cachen der Daten ein deutlicher Performance-Gewinn erreicht werden.
+Es sollte zunächst analysiert werden, welche Methoden wie oft bei dem "Kollabieren/Erweitern" einer Spalte gerufen werden (z.B. durch entsprechende Logausgaben). Dann sollte auch geklärt werden, ob und wenn ja welchen Einfluss die Anzahl der Zeilen (=Auszubildender) und die Anzahl der Blöcke haben.
+* Beim Kollabieren von KW-Headerfields ist noch nicht berücksichtigt/analysiert, welches Verhalten auftritt, wenn an einer KW mehrere Blöcke Beteiligt sind (Standard bei unterwöchig beginnenden/endenden Schulblöcken). Im Extremfall könnten bis zu sieben (wenn auch sehr kurze) Blöcke an einer KW beteiligt sein. Wie soll damit umgegangen werden?
+** Eine Möglichkeit wäre, bei KWs, an denen mehrere Blöcke beteiligt sind, ein Kollabieren zu verbieten. Das wäre einfach und einsehbar, hätte aber die Folge, dass gleich eine ganze Reihe von KWs (wie gesagt, bei Übergängen Schule-Betrieb ist das Standard), sich nicht kollabieren ließen
+** Verbieten nur bei der Beteiligung von mehr als zwei Blöcken (extrem selten und unwahrscheinlich), bei zwei Blöcken hälftig (links und rechts) einfärben (flexbox)
+* Gesetzliche Feiertage sowie Heiligabend und Silvester standardmäßig einfärben (oder als Blöcke durch Automatismus?)
+* Blöcke, die zu Zeilen definiert sind, die nicht alle zusammenhängen, automatisch in mehrere Blockdaten-Definitionen übersetzen und das "zusammenhängen" auch prüfen
+** die Kür wäre, wenn unterschiedliche Blöcke, die "zufällig" über mindestens zwei Zeilen zusammenhängen, automatisch verbunden würden
+* Verbesserung von Spacing und Sizing sowie Wrapping und Anpassung der Schriftgröße in Bezug auf den Platz - auch fehlt noch, dass "erkannt" wird, dass ein Block so kurz (in der Darstellung) ist, dass sein Name nicht komplett in der Box liegt. Dann sollte dieser automatisch gekürzt oder ganz weggelassen werden (Farbcode/Muster/Border muss repräsentativ sein!)
+* Interaktivität:
+** Hinzufügen eines Blocks
+*** Ein links-Klick auf eine freie Zelle startet den Vorgang. Ab hier wird bei jeder Bewegung des auf ein freies Feld wird der eingeschlossene rechteckige Bereicht von Start-Feld zum Ist-Feld eingefärbt/eingerahmt o.Ä. - sofern alle eingeschlossenen Felder frei sind. Ist mindestens eines der Felder nicht frei, so erfolgt eine andere Art der Markierung.
+*** Ein Rechts-Klick bricht den Vorgang ab.
+*** Ein zweiter Links-Klick fügt den Bereich hinzu, sofern er komplett frei ist (weitere, schärfere Markierung beim zweiten Linksklick, falls mindestens ein Feld nicht frei ist, die darauf hinweist, dass die Auswahl nicht zulässig ist).
+*** Auf das Hinzufügen folgt direkt ein modaler Dialog, in dem die Bezeichnung und die Farbe bestimmt werden (ob direkt oder über eine Auswahlbox/Kategorie ist noch zu klären). Auch kann in diesem Schritt nochmals abgebrochen werden (Button), mit dem gleichen Ergebnis wie beim vorzeitigen Rechtsklick (s.o.)
+*** ACHTUNG: Selbst das Hinzufügen ändert noch nichts an den Daten im "Backend". Sämtliche Änderungen am Frontend können selbst über mehrere Schritte zurückgerollt werden und müssen, bei Bedarf, explizit aus Auftrag gesendet werden, wenn sie persistiert werden sollen (Analog zu beispielsweise einem Partitionsmanager)
+** Ändern (und ggf. Entfernen) eines Blocks
+*** Ein Klick auf einen Betriebs- oder Urlaubsblocks (Schul- und/oder Ferienblöcke sind nicht änderbar) markiert diesen sichtbar (Umrandung/Schatten o.Ä.) und lässt ihn "manipulieren"
+*** Entweder poppt (analog zu dem Hinzufügen oben nach dem zweiten Klick) ein modaler Dialog auf, der eine Anpassung der Farbe und/oder der Bezeichnung des Blockes (wie zuvor ist auch hier noch zu klären ob dies über eine Auswahlbox/Katorien oder gar direkt erfolgen können soll) ermöglicht wird, oder es gibt wird ein Mini-Menü an/neben dem Block eingeblendet, dass diese Änderungen über entsprechende Icons und/oder direkte Manipulation des Textes (muss dann natürlich wieder selektierbar sein) ermöglicht. In letzterem Fall, der auf Dauer sicher angenehmer wäre, könnte auch die Möglichkeit zum Verschieben und dem Ändern der Größe (analog zu z.B. Powerpoint) gegeben werden. Mehr Aufwand aber auch deutlicher Mehrwert.
+*** Das Entfernen eines markierten Blockes könnte im zweiten Fall einfach auch durch ein Icon und die delete-Taste intuitiv ermöglicht werden. Im ersten Fall wäre ein entsprechender Button in den modalen Dialog aufzunehmen
+*** Sämtliche Änderungen sollten bis zu einem gewissen Punkt rückgängig gemacht werden können (str-z, str-y), das ist natürlich eine Herausforderung :-)
+*** Auch hier gilt natürlich, dass erst beim expliziten Absenden des Persistierungs-Auftrags die Änderungen aus der Session in das System übernommen werden
+
 
 == Issues
 
