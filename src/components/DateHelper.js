@@ -96,7 +96,7 @@ const weeksForRender = (table_data, column_offset) => {
     const days = table_data.weeks[idx];
     const week_number = table_data.week_0 ? idx : idx + 1;
     const week_name =
-      week_number >= 1 && week_number <= 52
+      week_number >= 1 && week_number <= 53
         ? `KW ${week_number.toString().padStart(2, "0")}`
         : "";
     weeks.push({
