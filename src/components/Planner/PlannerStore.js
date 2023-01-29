@@ -41,12 +41,14 @@ export const plannerStore = reactive({
 
   /* NEEDS MASSIVE WORKOVER CONCERNING COLLAPSIBLE KWs */
   freeDaysToRender(row_idx) {
+    //// NUR WORKAROUND FALLS (NOCH) KEINE BLÖCKE BEKANNT
     const allDays = [
       ...Array(this.getNumberOfNonHeaderColumnsToRender()).keys(),
     ].map((d) => d + 1);
     if (!this.block_data.get(row_idx)) {
       return allDays;
     }
+    //////////////////////////////////////////////////////
 
     const ret = [];
     let k = 0;
@@ -172,6 +174,7 @@ export const plannerStore = reactive({
       }
 
       days.push({
+        day_of_year,
         day_of_week: this.date_helper.weekDayNames[day_structure.day_of_week],
         day_of_month: day_structure.day_of_month,
         style_: `grid-column: ${column};`,
