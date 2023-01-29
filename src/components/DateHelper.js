@@ -35,8 +35,8 @@ const table_data = (year, column_offset) => {
           day_of_year: d,
           day_of_month: dm,
           day_of_week: weekDay,
-          in_week: w,
-          in_month: m,
+          week_idx: w,
+          month_idx: m,
         });
         res.table_data.weeks[w].push(d);
         res.table_data.months[m].push(d);
