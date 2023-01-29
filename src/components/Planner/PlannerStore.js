@@ -118,6 +118,7 @@ export const plannerStore = reactive({
         this.column_offset + this.getDataColumnForDayOfYear(days.at(-1));
       months.push({
         name: month_name,
+        month_number: month_idx + 1,
         style_: `grid-column: ${startColumn} / ${endColumn + 1};`,
       });
     });

@@ -9,6 +9,7 @@
       <div
         class="planner-cell planner-header-row planner-header-row-month"
         v-for="m in plannerStore.getMonthHeaderColumnsToRender()"
+        :class="`planner-header-row-month--${m.month_number}`"
         :style="m.style_"
       >
         {{ m.name }}
@@ -121,11 +122,62 @@ export default {
 </script>
 <style>
 .planner-container-grid {
+  background-color: #f3e0be;
   display: grid;
   text-align: center;
   font-size: 1.6rem;
   cursor: default;
   user-select: none;
+}
+
+.planner-header-row-month--1 {
+  /* Januar */
+  background-color: #4424d6;
+}
+
+.planner-header-row-month--2 {
+  background-color: #0247fe;
+}
+
+.planner-header-row-month--3 {
+  background-color: #347c98;
+}
+
+.planner-header-row-month--4 {
+  background-color: #66b032;
+}
+
+.planner-header-row-month--5 {
+  background-color: #b2d732;
+}
+
+.planner-header-row-month--6 {
+  background-color: #fefe33;
+}
+
+.planner-header-row-month--7 {
+  background-color: #fccc1a;
+}
+
+.planner-header-row-month--8 {
+  background-color: #fb9902;
+}
+
+.planner-header-row-month--9 {
+  background-color: #fc600a;
+}
+
+.planner-header-row-month--10 {
+  background-color: #fe2712;
+}
+
+.planner-header-row-month--11 {
+  background-color: #c21460;
+}
+
+.planner-header-row-month--12 {
+  /* Dezember */
+  background-color: #8601af;
 }
 
 .planner-header-row-week {
@@ -143,33 +195,34 @@ export default {
 }
 
 .planner-header-corner {
+  background-color: #ff6f61;
   border-left: 0.1rem solid black;
   border-top: 0.1rem solid black;
 }
 
 .planner-header-column {
+  background-color: #f7cac9;
   grid-column: 1;
   border-left: 0.1rem solid black;
   font-size: 1.8rem;
   min-width: 18rem;
-  text-align: right;
+  text-align: left;
 }
 
 .planner-header-row-month {
   grid-row: 1;
   border-top: 0.1rem solid black;
-  background-color: green;
   font-size: 2rem;
 }
 .planner-header-row-week {
   grid-row: 2;
-  background-color: blue;
+  background-color: #92a8d1;
   font-size: 1.8rem;
   /*min-width: 5.5rem;*/
 }
 .planner-header-row-day {
   grid-row: 3;
-  background-color: yellow;
+  background-color: #f7cac9;
 }
 .planner-header-day-week {
   font-size: 1.2rem;
