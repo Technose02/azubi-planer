@@ -55,7 +55,7 @@
         <div
           _v-for_="//d in plannerStore.date_helper.daysForRender"
           v-for="d in plannerStore.freeDaysToRender(idx)"
-          :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.in_week} month--${d.in_month}`"
+          :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
           :style="`grid-row: ${idx + this.plannerStore.row_offset};`"
         ></div>
       </template>
