@@ -37,7 +37,7 @@ export default {
           >Anwendungsentwicklung</planner-entry
         >
         <planner-entry
-          :row-keys="['ssebastian']"
+          :row-keys="['ssebastian', 'iingo']"
           :start-date="new Date(2023, 0, 23)"
           :end-date="new Date(2023, 0, 31)"
           color="#AC8"
