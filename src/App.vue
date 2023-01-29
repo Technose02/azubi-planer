@@ -37,6 +37,13 @@ export default {
           >Anwendungsentwicklung</planner-entry
         >
         <planner-entry
+          :row-keys="['ssebastian']"
+          :start-date="new Date(2023, 0, 23)"
+          :end-date="new Date(2023, 0, 31)"
+          color="#AC8"
+          >UHD</planner-entry
+        >
+        <planner-entry
           :row-keys="['vvigo', 'ddanzo', 'iilse']"
           :start-date="new Date(2023, 0, 30)"
           :end-date="new Date(2023, 1, 19)"
