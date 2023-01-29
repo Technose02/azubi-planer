@@ -86,4 +86,38 @@ export const plannerStore = reactive({
     }
     return k;
   },
+  getDataColumnForDayOfYear(dayOfYear) {
+    const daysOfKWs = this.date_helper.table_data.weeks;
+
+    let data_column_offset = 0;
+    for (let kw_idx = 0; kw_idx < daysOfKWs.length; kw_idx++) {
+      const days_of_week = daysOfKWs[kw_idx];
+      if (days_of_week.includes(dayOfYear)) {
+        if (this.kw_flags[kw_idx]) {
+          return data_column_offset + days_of_week.indexOf(dayOfYear) + 1;
+        } else {
+          // alle Tage dieser Woche sind in einer einzigen Spalte
+          return data_column_offset + 1;
+        }
+      }
+      // data_column_offset um breite dieser Spalte erhöhen
+      data_column_offset += this.kw_flags[kw_idx] ? days_of_week.length : 1;
+    }
+    throw error(`provided day ${dayOfYear} out of bounds`);
+  },
+  getMonthHeaderColumnsToRender() {
+    const months = [];
+    this.date_helper.monthNames.forEach((month_name, month_idx) => {
+      const days = this.date_helper.table_data.months[month_idx];
+      const startColumn =
+        this.column_offset + this.getDataColumnForDayOfYear(days[0]);
+      const endColumn =
+        this.column_offset + this.getDataColumnForDayOfYear(days.at(-1));
+      months.push({
+        name: month_name,
+        style_: `grid-column: ${startColumn} / ${endColumn + 1};`,
+      });
+    });
+    return months;
+  },
 });

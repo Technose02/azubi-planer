@@ -7,7 +7,7 @@
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
-        v-for="m in plannerStore.date_helper.monthsForRender"
+        v-for="m in plannerStore.getMonthHeaderColumnsToRender()"
         :style="m.style_"
       >
         {{ m.name }}

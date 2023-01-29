@@ -76,20 +76,6 @@ const table_data = (year, column_offset) => {
   return res;
 };
 
-const monthsForRender = (table_data, column_offset) => {
-  const months = [];
-  monthNames.forEach((month_name, month_idx) => {
-    const days = table_data.months[month_idx];
-    months.push({
-      name: month_name,
-      style_: `grid-column: ${days[0] + column_offset} / ${
-        days.at(-1) + column_offset + 1
-      };`,
-    });
-  });
-  return months;
-};
-
 const weeksForRender = (table_data, column_offset) => {
   const weeks = [];
   table_data.weeks.forEach((_, idx) => {
@@ -120,7 +106,7 @@ const init = (year, column_offset) => {
   return {
     table_data: td.table_data,
     daysForRender: td.days,
-    monthsForRender: monthsForRender(td.table_data, column_offset),
+    monthNames: monthNames,
     weeksForRender: weeksForRender(td.table_data, column_offset),
     dayOfYearFromDate: dayOfYearFromDate.bind(td.table_data),
   };
