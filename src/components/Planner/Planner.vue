@@ -3,7 +3,7 @@
   <template v-if="this.plannerStore.render_planner_flag">
     <div
       class="planner-container-grid"
-      :style="`grid-template-columns: 2fr repeat(${plannerStore.date_helper.daysForRender.length}, 1fr);`"
+      :style="`grid-template-columns: 2fr repeat(${plannerStore.getNumberOfNonHeaderColumnsToRender()}, 1fr);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
@@ -84,6 +84,10 @@ export default {
       plannerStore.year,
       plannerStore.column_offset
     );
+
+    plannerStore.date_helper.weeksForRender.forEach((w) => {
+      plannerStore.kw_flags.push(true); /* initial alle KWs anzeigen */
+    });
   },
 };
 </script>

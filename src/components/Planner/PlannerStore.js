@@ -8,6 +8,7 @@ export const plannerStore = reactive({
   row_keys: [],
   date_helper: {},
   block_data: new Map(),
+  kw_flags: [],
   addBlockedDataRange(row_idx, daysBlockedStart, daysBlockedEnd) {
     /* Blöcke sind nie überlappend, das wird von (bzw. ist durch) externe (die "zuspielende")
        Logik gesichert (bzw. zu sichern!)
@@ -76,5 +77,13 @@ export const plannerStore = reactive({
       }
     }
     return [...ret, ...this.date_helper.daysForRender.slice(k)]; // slice(k) -> Alle Element ab k (bis zum Letzen also)
+  },
+  getNumberOfNonHeaderColumnsToRender() {
+    let k = 0;
+    for (let i = 0; i < this.kw_flags.length; i++) {
+      // wenn die aktuell betrachtete KW 'collapsed' ist (kw_flag===false) belegt sie eine Spalte, ansonsten so viele wie Tage darin enthalten sind
+      k += this.kw_flags[i] ? this.date_helper.table_data.weeks[i].length : 1;
+    }
+    return k;
   },
 });
