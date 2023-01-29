@@ -41,40 +41,40 @@ export const plannerStore = reactive({
 
   /* NEEDS MASSIVE WORKOVER CONCERNING COLLAPSIBLE KWs */
   freeDaysToRender(row_idx) {
-    //// NUR WORKAROUND FALLS (NOCH) KEINE BLÖCKE BEKANNT
-    const allDays = [
-      ...Array(this.getNumberOfNonHeaderColumnsToRender()).keys(),
-    ].map((d) => d + 1);
+    const daysForRender = this.getDayHeaderColumnsToRender().filter(
+      (d) => d.render
+    );
+
     if (!this.block_data.get(row_idx)) {
-      return allDays;
+      return daysForRender;
     }
-    //////////////////////////////////////////////////////
 
     const ret = [];
+    const dataColumnIntervals = this.block_data
+      .get(row_idx)
+      .map(
+        (i) =>
+          new Interval(
+            this.getDataColumnForDayOfYear(i.start),
+            this.getDataColumnForDayOfYear(i.end)
+          )
+      );
+
+    const dataColumnsOfDaysForRender = daysForRender.map((d) => d.data_column);
+
     let k = 0;
-
-    const intervals = this.block_data.get(row_idx);
-
-    const daysForRender = this.getDayHeaderColumnsToRender();
-    for (let iid in intervals) {
-      const blockedInterval = intervals[iid];
-      while (k < allDays.length) {
-        const d = allDays[k];
-        /* wir pushen nicht die Werte von allDays (nur day_of_year-Angabe),
-           sondern die Korrespondierenden Objects, die über getDayHeaderColumnsToRender() erzeugten
-           in das Ergebnis-Array (siehe auch unten beim Hinzufügen des Restes)
-        */
+    for (let iid in dataColumnIntervals) {
+      const blockedInterval = dataColumnIntervals[iid];
+      while (k < daysForRender.length) {
         const d_to_push = daysForRender[k];
-        if (d >= blockedInterval.start) {
+        if (d_to_push.data_column >= blockedInterval.start) {
           break;
         }
         ret.push(d_to_push);
         k++;
       }
-      // HIER MUSS UMGEDACHT WERDEN WENN WIR NICHT MEHR TAGE SONDERN COLUMNS RENDERN
-      // (ABSTRAKTION)
-      // DIES WIRD NÖTIG SEIN UM BEISPIELSWEISE GEWISSE SPALTEN AUSBLENDEN ZU KÖNNEN
-      k = allDays.indexOf(blockedInterval.end + 1);
+
+      k = dataColumnsOfDaysForRender.indexOf(blockedInterval.end + 1);
       if (k < 0) {
         return ret; // fertig, weil dann das Ende des Blocks mit dem "Ende aller Tage" zusammenfällt
       }
@@ -162,9 +162,9 @@ export const plannerStore = reactive({
 
     this.date_helper.table_data.days.forEach((day_structure, day_idx) => {
       const day_of_year = day_structure.day_of_year;
-      const column =
-        this.column_offset + this.getDataColumnForDayOfYear(day_of_year);
-      const kw_idx = day_structure.in_week;
+      const data_column = this.getDataColumnForDayOfYear(day_of_year);
+      const column = this.column_offset + data_column;
+      const kw_idx = day_structure.week_idx;
 
       let render_day = true;
       let display_day_text = true;
@@ -176,8 +176,11 @@ export const plannerStore = reactive({
 
       days.push({
         day_of_year,
-        day_of_week: this.date_helper.weekDayNames[day_structure.day_of_week],
         day_of_month: day_structure.day_of_month,
+        week_number: day_structure.week_idx + 1,
+        month_number: day_structure.month_idx + 1,
+        day_of_week: this.date_helper.weekDayNames[day_structure.day_of_week],
+        data_column,
         style_: `grid-column: ${column};`,
         render: render_day,
         display_text: display_day_text,
