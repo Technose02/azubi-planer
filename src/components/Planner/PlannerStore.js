@@ -39,7 +39,6 @@ export const plannerStore = reactive({
     this.render_planner_flag = true;
   },
 
-  /* NEEDS MASSIVE WORKOVER CONCERNING COLLAPSIBLE KWs */
   freeDaysToRender(row_idx) {
     const daysForRender = this.getDayHeaderColumnsToRender().filter(
       (d) => d.render
