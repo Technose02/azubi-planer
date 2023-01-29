@@ -146,4 +146,41 @@ export const plannerStore = reactive({
     });
     return weeks;
   },
+  getDayHeaderColumnsToRender() {
+    const days = [];
+
+    // Im Fall von "collapsed" KWs ist nur ein Tag zu rendern. Über dieses Array
+    // merken wir uns, ob zu einer KW schon ein Tag mit render:true gepushed wurde
+    const at_least_one_day_of_week_set_visible = Array(
+      this.date_helper.table_data.weeks.length
+    ).fill(false);
+
+    this.date_helper.daysForRender.forEach((day_structure, day_idx) => {
+      const day_of_year = day_structure.day_of_year;
+      const column =
+        this.column_offset + this.getDataColumnForDayOfYear(day_of_year);
+      const kw_idx = day_structure.in_week;
+
+      let render_day = true;
+      let display_day_text = true;
+      if (!this.kw_flags[kw_idx]) {
+        // Die Woche zu diesem Tag ist collapsed!
+        render_day = !at_least_one_day_of_week_set_visible[kw_idx]; // nur rendern wenn zu dieser KW noch kein Tag mit render:true gepushed ist
+        display_day_text = false; // wenn KW collapsed ist dann keinen Text im Tag-Feld ausgeben
+      }
+
+      days.push({
+        day_of_week: day_structure.day_of_week,
+        day_of_month: day_structure.day_of_month,
+        style_: `grid-column: ${column};`,
+        render: render_day,
+        display_text: display_day_text,
+      });
+
+      if (render_day) {
+        at_least_one_day_of_week_set_visible[kw_idx] = true;
+      }
+    });
+    return days;
+  },
 });

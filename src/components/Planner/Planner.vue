@@ -21,13 +21,17 @@
       </div>
       <div
         class="planner-cell planner-header-row planner-header-row-day"
-        v-for="d in plannerStore.date_helper.daysForRender"
+        v-for="d in plannerStore.getDayHeaderColumnsToRender()"
         :style="d.style_"
       >
-        <div style="display: flex; flex-direction: column">
-          <span class="planner-header-day-week">{{ d.day_of_week }}</span>
-          <span class="planner-header-day-month">{{ d.day_of_month }}</span>
-        </div>
+        <template v-if="d.render">
+          <div style="display: flex; flex-direction: column">
+            <template v-if="d.display_text">
+              <span class="planner-header-day-week">{{ d.day_of_week }}</span>
+              <span class="planner-header-day-month">{{ d.day_of_month }}</span>
+            </template>
+          </div>
+        </template>
       </div>
       <div
         class="planner-cell planner-header-corner"
