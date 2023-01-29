@@ -98,7 +98,13 @@ export default {
       );
 
       // toggle collapsed-state of KW-HeaderField
-      plannerStore.kw_flags[kw_idx] = !plannerStore.kw_flags[kw_idx];
+      if (plannerStore.kw_flags[kw_idx]) {
+        plannerStore.kw_flags[kw_idx] = false;
+        e.target.classList.add("collapsed");
+      } else {
+        plannerStore.kw_flags[kw_idx] = true;
+        e.target.classList.remove("collapsed");
+      }
     },
   },
   created() {
@@ -122,7 +128,6 @@ export default {
 </script>
 <style>
 .planner-container-grid {
-  background-color: #f3e0be;
   display: grid;
   text-align: center;
   font-size: 1.6rem;
@@ -191,6 +196,7 @@ export default {
 }
 
 .data-cell {
+  background-color: #f3e0be;
   min-width: 2.93rem;
 }
 
@@ -214,12 +220,21 @@ export default {
   border-top: 0.1rem solid black;
   font-size: 2rem;
 }
+
 .planner-header-row-week {
   grid-row: 2;
   background-color: #92a8d1;
   font-size: 1.8rem;
   /*min-width: 5.5rem;*/
 }
+
+.planner-header-row-week.collapsed {
+  grid-row: 2;
+  background-color: #8298c0;
+  font-size: 1.8rem;
+  /*min-width: 5.5rem;*/
+}
+
 .planner-header-row-day {
   grid-row: 3;
   background-color: #f7cac9;
