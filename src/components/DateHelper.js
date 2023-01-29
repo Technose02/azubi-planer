@@ -1,4 +1,4 @@
-const table_data = (year, column_offset) => {
+const table_data = (year) => {
   const res = {
     table_data: {
       months: [],
@@ -25,8 +25,8 @@ const table_data = (year, column_offset) => {
       let _date = new Date(year, m, dm);
       if (_date.getMonth() === m && _date.getDate() === dm) {
         const weekDay = _date.getDay();
-        if (weekDay === 1 /* 0:So, 1:Mo etc. */) {
-          // Es ist ein Montag, also beginnt eine neue Woche
+        if (weekDay === 1 && d !== 0 /* 0:So, 1:Mo etc. */) {
+          // Es ist ein Montag (und nicht der erste Tag des Jahres ;-)), also beginnt eine neue Woche
           w += 1;
           res.table_data.weeks[w] = [];
         }
