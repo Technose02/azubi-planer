@@ -4,7 +4,7 @@
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 24rem repeat(${plannerStore.getNumberOfNonHeaderColumnsToRender()}, 3.5rem);`"
+      :style="`grid-template-columns: 24rem repeat(${plannerStore.getNumberOfNonHeaderGridColumnsToRender()}, 0.5rem);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
@@ -26,14 +26,12 @@
         v-for="d in plannerStore.getDayHeaderColumnsToRender()"
         :style="d.style_"
       >
-        <template v-if="d.render">
-          <div style="display: flex; flex-direction: column">
-            <template v-if="d.display_text">
-              <span class="planner-header-day-week">{{ d.day_of_week }}</span>
-              <span class="planner-header-day-month">{{ d.day_of_month }}</span>
-            </template>
-          </div>
-        </template>
+        <div style="display: flex; flex-direction: column">
+          <template v-if="d.display_text">
+            <span class="planner-header-day-week">{{ d.day_of_week }}</span>
+            <span class="planner-header-day-month">{{ d.day_of_month }}</span>
+          </template>
+        </div>
       </div>
       <div
         class="planner-cell planner-header-corner"
@@ -98,11 +96,11 @@ export default {
       );
 
       // toggle collapsed-state of KW-HeaderField
-      if (plannerStore.kw_flags[kw_idx]) {
-        plannerStore.kw_flags[kw_idx] = false;
+      if (!plannerStore.kw_is_collapsed[kw_idx]) {
+        plannerStore.kw_is_collapsed[kw_idx] = true;
         e.target.classList.add("collapsed");
       } else {
-        plannerStore.kw_flags[kw_idx] = true;
+        plannerStore.kw_is_collapsed[kw_idx] = false;
         e.target.classList.remove("collapsed");
       }
     },
@@ -121,8 +119,10 @@ export default {
     );
 
     plannerStore.date_helper.table_data.weeks.forEach((w) => {
-      plannerStore.kw_flags.push(true); /* initial alle KWs anzeigen */
+      plannerStore.kw_is_collapsed.push(false); /* initial alle KWs anzeigen */
     });
+
+    //console.log(plannerStore.getNumberOfNonHeaderGridColumnsToRender());
   },
 };
 </script>

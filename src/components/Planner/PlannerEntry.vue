@@ -23,10 +23,10 @@ export default {
   methods: {
     computeStyle() {
       const colStart =
-        plannerStore.getDataColumnForDayOfYear(this.daysBlockedStart) +
+        plannerStore.getDataGridColumnsForDayOfYear(this.daysBlockedStart)[0] +
         plannerStore.column_offset;
       const colEnd =
-        plannerStore.getDataColumnForDayOfYear(this.daysBlockedEnd) +
+        plannerStore.getDataGridColumnsForDayOfYear(this.daysBlockedEnd)[1] +
         plannerStore.column_offset;
       const colIdxArray = this.rowsBlocked
         .map((idx) => plannerStore.row_offset + idx)
