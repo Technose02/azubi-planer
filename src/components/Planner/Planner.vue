@@ -4,7 +4,7 @@
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 2fr repeat(${plannerStore.getNumberOfNonHeaderColumnsToRender()}, 1fr);`"
+      :style="`grid-template-columns: 24rem repeat(${plannerStore.getNumberOfNonHeaderColumnsToRender()}, 3.5rem);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
