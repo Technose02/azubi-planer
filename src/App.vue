@@ -56,8 +56,15 @@
           :row-keys="['ffarina']"
           :start-date="new Date(this.year, 11, 25)"
           :end-date="new Date(this.year, 11, 31)"
-          color="#08F"
-          >PJM</planner-entry
+          color="#048"
+          >ECL</planner-entry
+        >
+        <planner-entry
+          :row-keys="['iingo']"
+          :start-date="new Date(this.year, 11, 25)"
+          :end-date="new Date(this.year, 11, 30)"
+          color="#048"
+          >ECL</planner-entry
         >
       </planner>
     </div>
