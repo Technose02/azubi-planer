@@ -1,3 +1,4 @@
+import { assert } from "@vue/compiler-core";
 import { reactive, render } from "vue";
 import Interval from "../Interval";
 
@@ -6,6 +7,7 @@ const LOGIC_BASE_COLUMN_WIDTH = 7;
 
 export const plannerStore = reactive({
   render_planner_flag: true,
+  LOGIC_BASE_COLUMN_WIDTH: LOGIC_BASE_COLUMN_WIDTH, // export if needed
   year: 0,
   column_offset: 0,
   row_offset: 0,
@@ -44,10 +46,7 @@ export const plannerStore = reactive({
   },
 
   freeDaysToRender(row_idx) {
-    const daysForRender = this.getDayHeaderColumnsToRender().filter(
-      (d) => d.render
-    );
-
+    const daysForRender = this.getDayHeaderColumnsToRender();
     if (!this.block_data.get(row_idx)) {
       return daysForRender;
     }
@@ -63,21 +62,68 @@ export const plannerStore = reactive({
           )
       );
 
-    const dataColumnsOfDaysForRender = daysForRender.map((d) => d.data_column);
+    const dataColumnsStartOfDaysForRender = daysForRender.map(
+      (d) => d.data_columns[0]
+    );
 
     let k = 0;
-    for (let iid in dataColumnIntervals) {
+    for (let iid = 0; iid < dataColumnIntervals.length; iid++) {
       const blockedInterval = dataColumnIntervals[iid];
+
+      let lastDayPushed = undefined;
       while (k < daysForRender.length) {
         const d_to_push = daysForRender[k];
-        if (d_to_push.data_column >= blockedInterval.start) {
+        if (d_to_push.data_columns[1] >= blockedInterval.start) {
           break;
         }
         ret.push(d_to_push);
+        lastDayPushed = d_to_push;
         k++;
       }
 
-      k = dataColumnsOfDaysForRender.indexOf(blockedInterval.end + 1);
+      let gap = 0;
+      if (lastDayPushed) {
+        gap = blockedInterval.start - lastDayPushed.data_columns[1] - 1;
+      }
+
+      if (gap > 0) {
+        const daysLogicallyInGap =
+          plannerStore.date_helper.table_data.days.slice(
+            lastDayPushed.day_of_year,
+            lastDayPushed.day_of_year + gap
+          );
+        // Prüfe ob alle zu der Lücke in derselben Woche liegen und ob diese Woche "kollabiert" ist:
+        const kwIdxOfGap = daysLogicallyInGap[0].week_idx;
+        const allDaysOfGapInSameWeek = daysLogicallyInGap.every(
+          (d) => d.week_idx === kwIdxOfGap
+        );
+        const kwOfGapCollapsed = plannerStore.kw_is_collapsed[kwIdxOfGap];
+        if (allDaysOfGapInSameWeek && kwOfGapCollapsed) {
+          //// PUSH DAY FILLING GAP
+          const fillDay = {
+            is_fill_day: true,
+            day_of_year: daysLogicallyInGap[0].day_of_year,
+            week_number: daysLogicallyInGap[0].week_idx + 1,
+            month_number: daysLogicallyInGap[0].month_idx + 1,
+            style_: `grid-column: ${lastDayPushed.data_columns[1] + 2} / ${
+              lastDayPushed.data_columns[1] + 2 + gap
+            };`,
+          };
+          ret.push(fillDay);
+        } else if (!allDaysOfGapInSameWeek) {
+          console.log(
+            "ZU KLÄREN: DIE TAGE ZUR DER LÜCKE LIEGEN NICHT ALLE IN DERSELBEN KW!!!"
+          );
+          assert(true);
+        } else {
+          console.log(
+            "ZU KLÄREN: DIE TAGE ZUR DER LÜCKE LIEGEN ZWAR ALLE IN DERSELBEN KW, DIESE IST ABER NICHT KOLLABIERT!!!"
+          );
+          assert(true);
+        }
+      }
+
+      k = dataColumnsStartOfDaysForRender.indexOf(blockedInterval.end + 1);
       if (k < 0) {
         return ret; // fertig, weil dann das Ende des Blocks mit dem "Ende aller Tage" zusammenfällt
       }
@@ -164,7 +210,7 @@ export const plannerStore = reactive({
     this.date_helper.table_data.weeks.forEach((days, kw_idx) => {
       const week_number = this.date_helper.week_0 ? kw_idx : kw_idx + 1;
       const week_name =
-        week_number >= 1 && week_number <= 53
+        week_number >= 1 && week_number <= 52
           ? `KW ${week_number.toString().padStart(2, "0")}`
           : "";
       const startColumn =
@@ -194,18 +240,18 @@ export const plannerStore = reactive({
 
     this.date_helper.table_data.days.forEach((day_structure) => {
       const day_of_year = day_structure.day_of_year;
-      const data_columns = this.getDataGridColumnsForDayOfYear(day_of_year);
-      const startColumn = this.column_offset + data_columns[0];
+      let data_columns = this.getDataGridColumnsForDayOfYear(day_of_year);
 
       /* Anpassung, da hier ein Workaround greift. Im Falle einer
-        kollabierten KW sollen nicht LOGIC_BASE_COLUMN_WIDTH kurze Tage sondern ein Langer
-        gerendert werden (daher auch at_least_one_day_of_week_set_visible als flag ob ein Tag
+      kollabierten KW sollen nicht LOGIC_BASE_COLUMN_WIDTH kurze Tage sondern ein Langer
+      gerendert werden (daher auch at_least_one_day_of_week_set_visible als flag ob ein Tag
         überhaupt gerendert werden soll).
         Daher nicht "data_columns[1]" sondern fix "data_columns[0] + LOGIC_BASE_COLUMN_WIDTH - 1"
-      */
-      const endColumn =
-        this.column_offset + data_columns[0] + LOGIC_BASE_COLUMN_WIDTH - 1;
+        */
+      data_columns[1] = data_columns[0] + LOGIC_BASE_COLUMN_WIDTH - 1;
 
+      const startColumn = this.column_offset + data_columns[0];
+      const endColumn = this.column_offset + data_columns[1];
       const kw_idx = day_structure.week_idx;
 
       let display_day_text = true;

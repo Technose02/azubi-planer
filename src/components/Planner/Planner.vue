@@ -50,12 +50,22 @@
 
       <!-- Rendern der freien "Data-Cells" -->
       <template v-for="(r, idx) in this.rowTitles">
-        <div
-          _v-for_="//d in plannerStore.date_helper.daysForRender"
-          v-for="d in plannerStore.freeDaysToRender(idx)"
-          :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
-          :style="`grid-row: ${idx + this.plannerStore.row_offset};`"
-        ></div>
+        <template v-for="d in plannerStore.freeDaysToRender(idx)">
+          <div
+            v-if="d.is_fill_day"
+            :class="`planner-cell data-cell fill-day day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
+            :style="`grid-row: ${idx + this.plannerStore.row_offset}; ${
+              d.style_
+            }`"
+          ></div>
+          <div
+            v-else
+            :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
+            :style="`grid-row: ${idx + this.plannerStore.row_offset}; ${
+              d.style_
+            }`"
+          ></div>
+        </template>
       </template>
     </div>
   </template>
@@ -198,6 +208,10 @@ export default {
 .data-cell {
   background-color: #f3e0be;
   min-width: 2.93rem;
+}
+
+.fill-day {
+  min-width: 0;
 }
 
 .planner-header-corner {
