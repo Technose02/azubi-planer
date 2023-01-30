@@ -8,7 +8,7 @@ import { plannerStore } from "./PlannerStore";
 export default {
   data() {
     return {
-      plannerStore,
+      store: plannerStore,
       daysBlockedStart: 0,
       daysBlockedEnd: 0,
       rowsBlocked: [],
@@ -23,24 +23,22 @@ export default {
   methods: {
     computeStyle() {
       const colStart =
-        plannerStore.getDataGridColumnsForDayOfYear(this.daysBlockedStart)[0] +
-        plannerStore.column_offset;
+        this.store.getDataGridColumnsForDayOfYear(this.daysBlockedStart)[0] +
+        this.store.column_offset;
       let colEnd =
-        plannerStore.getDataGridColumnsForDayOfYear(this.daysBlockedEnd)[1] +
-        plannerStore.column_offset;
+        this.store.getDataGridColumnsForDayOfYear(this.daysBlockedEnd)[1] +
+        this.store.column_offset;
 
       // Schönheitskorrektur die nur bei angefangener KW01 des Folgejahres am Ende des Planers
       // durchzuführen ist
       // Liegt das Ende eines Blockes in dieser "Teil-Woche" (sie wird nur zu den Anteilen gerendert, die noch in diesem Jahr liegen),
       // so wird beim Kollabieren dieser "Teil-Woche" nicht das richtige Verhältnis des Blockendes in der kollabierten KW eingehalten
       // der Korrekturterm (s.u.) kompensiert dies
-      const blockEndDayAsStructure =
-        plannerStore.date_helper.table_data.days[this.daysBlockedEnd - 1];
-      if (plannerStore.kw_is_collapsed[blockEndDayAsStructure.week_idx]) {
+      const cacheForYear = this.store.model.getCacheForYear();
+      const blockEndDayAsStructure = cacheForYear.days[this.daysBlockedEnd - 1];
+      if (this.store.model.getCollapsedState(blockEndDayAsStructure.week_idx)) {
         const lengthOfWeekOfBlockEnd =
-          plannerStore.date_helper.table_data.weeks[
-            blockEndDayAsStructure.week_idx
-          ].length;
+          cacheForYear.weeks[blockEndDayAsStructure.week_idx].length;
 
         // Korrekturterm
         // Der Part hinter dem "+" ist genau dann der zuvor abgezogene Anteil "blockEndDayAsStructure.day_of_week",
@@ -56,7 +54,7 @@ export default {
       }
 
       const rowIdxArray = this.rowsBlocked
-        .map((idx) => plannerStore.row_offset + idx)
+        .map((idx) => this.store.row_offset + idx)
         .sort((a, b) => a - b);
 
       return `grid-row: ${rowIdxArray[0]} / ${
@@ -67,17 +65,13 @@ export default {
     },
   },
   created() {
-    this.daysBlockedStart = plannerStore.date_helper.dayOfYearFromDate(
-      this.startDate
-    );
-    this.daysBlockedEnd = plannerStore.date_helper.dayOfYearFromDate(
-      this.endDate
-    );
+    this.daysBlockedStart = this.store.model.dayOfYearFromDate(this.startDate);
+    this.daysBlockedEnd = this.store.model.dayOfYearFromDate(this.endDate);
     this.rowsBlocked = this.rowKeys
-      .map((k) => plannerStore.row_keys.indexOf(k))
+      .map((k) => this.store.model.getDataRowKeys().indexOf(k))
       .filter((i) => i >= 0);
     this.rowsBlocked.forEach((r) => {
-      this.plannerStore.addBlockedDataRange(
+      this.store.model.addBlockedDataRange(
         r,
         this.daysBlockedStart,
         this.daysBlockedEnd

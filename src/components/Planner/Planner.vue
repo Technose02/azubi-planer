@@ -1,14 +1,18 @@
 <template>
   <!-- dirty hack for forced rerender -->
-  <template v-if="this.plannerStore.render_planner_flag">
+  <template
+    v-if="
+      this.store.model.store.state._force_rerender_handle_for_planner_component
+    "
+  >
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 24rem repeat(${plannerStore.getNumberOfNonHeaderGridColumnsToRender()}, 0.5rem);`"
+      :style="`grid-template-columns: 24rem repeat(${this.store.getNumberOfNonHeaderGridColumnsToRender()}, 0.5rem);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
-        v-for="m in plannerStore.getMonthHeaderColumnsToRender()"
+        v-for="m in this.store.getMonthHeaderColumnsToRender()"
         :class="`planner-header-row-month--${m.month_number}`"
         :style="m.style_"
       >
@@ -16,19 +20,19 @@
       </div>
       <div
         :class="`planner-cell planner-header-row planner-header-row-week planner-header-row-week--${w.kw_idx}`"
-        v-for="w in plannerStore.getWeekHeaderColumnsToRender()"
+        v-for="w in this.store.getWeekHeaderColumnsToRender()"
         :style="w.style_"
       >
         {{ w.name }}
       </div>
       <div
-        class="planner-cell planner-header-row planner-header-row-day"
-        v-for="d in plannerStore.getDayHeaderColumnsToRender()"
+        v-for="d in this.store.getDayHeaderColumnsToRender()"
+        :class="`planner-cell planner-header-row planner-header-row-day day-year--${d.day_of_year} month--${d.month_number} week--${d.week_number} day-week--${d.day_of_week} day-month--${d.day_of_month}`"
         :style="d.style_"
       >
         <div style="display: flex; flex-direction: column">
           <template v-if="d.display_text">
-            <span class="planner-header-day-week">{{ d.day_of_week }}</span>
+            <span class="planner-header-day-week">{{ d.day_of_week_str }}</span>
             <span class="planner-header-day-month">{{ d.day_of_month }}</span>
           </template>
         </div>
@@ -50,20 +54,16 @@
 
       <!-- Rendern der freien "Data-Cells" -->
       <template v-for="(r, idx) in this.rowTitles">
-        <template v-for="d in plannerStore.freeDaysToRender(idx)">
+        <template v-for="d in this.store.freeDaysToRender(idx)">
           <div
             v-if="d.is_fill_day"
             :class="`planner-cell data-cell fill-day day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
-            :style="`grid-row: ${idx + this.plannerStore.row_offset}; ${
-              d.style_
-            }`"
+            :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
           <div
             v-else
             :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
-            :style="`grid-row: ${idx + this.plannerStore.row_offset}; ${
-              d.style_
-            }`"
+            :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
         </template>
       </template>
@@ -71,13 +71,13 @@
   </template>
 </template>
 <script>
-import DateHelper from "../DateHelper";
 import { plannerStore } from "./PlannerStore";
+import initPlannerModel from "./PlannerModel";
 
 export default {
   data() {
     return {
-      plannerStore,
+      store: plannerStore,
       rowTitles: [],
     };
   },
@@ -89,7 +89,6 @@ export default {
   methods: {
     onClick(e) {
       e.preventDefault();
-
       // Wählen des zuständigen Handlers
       const target_classList = e.target.classList;
       if (target_classList.contains("planner-header-row-week")) {
@@ -105,31 +104,21 @@ export default {
           .split("--")[1]
       );
 
-      // toggle collapsed-state of KW-HeaderField
-      if (!plannerStore.kw_is_collapsed[kw_idx]) {
-        plannerStore.kw_is_collapsed[kw_idx] = true;
+      if (!this.store.model.getCollapsedState(kw_idx)) {
+        this.store.model.setCollapsedState(kw_idx, true);
         e.target.classList.add("collapsed");
       } else {
-        plannerStore.kw_is_collapsed[kw_idx] = false;
+        this.store.model.setCollapsedState(kw_idx, false);
         e.target.classList.remove("collapsed");
       }
     },
   },
   created() {
-    // write to plannerStore
-    plannerStore.column_offset = 1;
-    plannerStore.row_offset = 4;
-    plannerStore.year = this.year;
-    plannerStore.row_keys = this.rows.map((r) => r.key);
+    this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);
     this.rowTitles = this.rows.map((r) => r.title);
 
-    plannerStore.date_helper = DateHelper.init(
-      plannerStore.year,
-      plannerStore.column_offset
-    );
-
-    plannerStore.date_helper.table_data.weeks.forEach((w) => {
-      plannerStore.kw_is_collapsed.push(false); /* initial alle KWs anzeigen */
+    this.store.model.getCacheForYear().weeks.forEach((w) => {
+      this.store.model.setCollapsedState(w, false);
     });
   },
 };

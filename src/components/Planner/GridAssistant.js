@@ -34,7 +34,6 @@ class GridAssistant {
     const iend = interval.end;
     let i = interval.start;
     let step = this.baseBlockSize - ((i - 1) % this.baseBlockSize);
-    console.log(step);
     if (i + step > iend) {
       // step schon zu groß
       gapBlockSizes.push(iend - i);
