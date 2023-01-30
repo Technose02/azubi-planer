@@ -12,7 +12,6 @@ class Interval {
     if (this.end < other.start || this.start > other.end) return false;
     return true;
   }
-
   // Not needed as of yet
   /*
   merge(other) {

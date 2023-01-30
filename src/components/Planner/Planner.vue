@@ -131,8 +131,6 @@ export default {
     plannerStore.date_helper.table_data.weeks.forEach((w) => {
       plannerStore.kw_is_collapsed.push(false); /* initial alle KWs anzeigen */
     });
-
-    //console.log(plannerStore.getNumberOfNonHeaderGridColumnsToRender());
   },
 };
 </script>
@@ -211,6 +209,10 @@ export default {
 }
 
 .fill-day {
+  min-width: 0;
+}
+
+.planner-block {
   min-width: 0;
 }
 

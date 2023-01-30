@@ -1,6 +1,6 @@
-import { assert } from "@vue/compiler-core";
-import { reactive, render } from "vue";
+import { reactive } from "vue";
 import Interval from "../Interval";
+import GridAssistant from "./GridAssistant";
 
 // eine "logische" Spalte besteht aus LOGIC_BASE_COLUMN_WIDTH GridColumns
 const LOGIC_BASE_COLUMN_WIDTH = 7;
@@ -44,15 +44,19 @@ export const plannerStore = reactive({
 
     this.render_planner_flag = true;
   },
-
   freeDaysToRender(row_idx) {
     const daysForRender = this.getDayHeaderColumnsToRender();
     if (!this.block_data.get(row_idx)) {
       return daysForRender;
     }
 
-    const ret = [];
-    const dataColumnIntervals = this.block_data
+    // Daten-Spalten beginnen mit Spalte offset ; die letzte Datenspalte ist offset+this.getNumberOfNonHeaderGridColumnsToRender(), da rechts kein offset vorgesehen ist!
+    const firstDataCol = this.column_offset;
+    const lastDataCol =
+      this.column_offset + this.getNumberOfNonHeaderGridColumnsToRender();
+
+    // Datenblock-Intervalle:
+    let dataColumnIntervals = this.block_data
       .get(row_idx)
       .map(
         (i) =>
@@ -62,74 +66,36 @@ export const plannerStore = reactive({
           )
       );
 
-    const dataColumnsStartOfDaysForRender = daysForRender.map(
-      (d) => d.data_columns[0]
+    // Muss Lücken vor, hinter und zwischen Blöcken füllen
+
+    // zu füllende Grid-Column-Intervalle ermitteln:
+    console.log(dataColumnIntervals);
+    console.log(this.getNumberOfNonHeaderGridColumnsToRender());
+
+    const ga = new GridAssistant(
+      firstDataCol,
+      lastDataCol,
+      this.LOGIC_BASE_COLUMN_WIDTH
     );
 
-    let k = 0;
-    for (let iid = 0; iid < dataColumnIntervals.length; iid++) {
-      const blockedInterval = dataColumnIntervals[iid];
+    const daysToRender = [];
+    let gapsToFill = ga.determineGapsToFill(dataColumnIntervals);
 
-      let lastDayPushed = undefined;
-      while (k < daysForRender.length) {
-        const d_to_push = daysForRender[k];
-        if (d_to_push.data_columns[1] >= blockedInterval.start) {
-          break;
-        }
-        ret.push(d_to_push);
-        lastDayPushed = d_to_push;
-        k++;
-      }
-
-      let gap = 0;
-      if (lastDayPushed) {
-        gap = blockedInterval.start - lastDayPushed.data_columns[1] - 1;
-      }
-
-      if (gap > 0) {
-        const daysLogicallyInGap =
-          plannerStore.date_helper.table_data.days.slice(
-            lastDayPushed.day_of_year,
-            lastDayPushed.day_of_year + gap
-          );
-        // Prüfe ob alle zu der Lücke in derselben Woche liegen und ob diese Woche "kollabiert" ist:
-        const kwIdxOfGap = daysLogicallyInGap[0].week_idx;
-        const allDaysOfGapInSameWeek = daysLogicallyInGap.every(
-          (d) => d.week_idx === kwIdxOfGap
-        );
-        const kwOfGapCollapsed = plannerStore.kw_is_collapsed[kwIdxOfGap];
-        if (allDaysOfGapInSameWeek && kwOfGapCollapsed) {
-          //// PUSH DAY FILLING GAP
-          const fillDay = {
-            is_fill_day: true,
-            day_of_year: daysLogicallyInGap[0].day_of_year,
-            week_number: daysLogicallyInGap[0].week_idx + 1,
-            month_number: daysLogicallyInGap[0].month_idx + 1,
-            style_: `grid-column: ${lastDayPushed.data_columns[1] + 2} / ${
-              lastDayPushed.data_columns[1] + 2 + gap
-            };`,
-          };
-          ret.push(fillDay);
-        } else if (!allDaysOfGapInSameWeek) {
-          console.log(
-            "ZU KLÄREN: DIE TAGE ZUR DER LÜCKE LIEGEN NICHT ALLE IN DERSELBEN KW!!!"
-          );
-          assert(true);
-        } else {
-          console.log(
-            "ZU KLÄREN: DIE TAGE ZUR DER LÜCKE LIEGEN ZWAR ALLE IN DERSELBEN KW, DIESE IST ABER NICHT KOLLABIERT!!!"
-          );
-          assert(true);
-        }
-      }
-
-      k = dataColumnsStartOfDaysForRender.indexOf(blockedInterval.end + 1);
-      if (k < 0) {
-        return ret; // fertig, weil dann das Ende des Blocks mit dem "Ende aller Tage" zusammenfällt
-      }
-    }
-    return [...ret, ...daysForRender.slice(k)]; // slice(k) -> Alle Element ab k (bis zum Letzen also)
+    gapsToFill.forEach((i) =>
+      ga.generateBlockRangeSequenceFromInterval(i).forEach((brs) => {
+        daysToRender.push({
+          is_fill_day: true,
+          day_of_year: -1,
+          style_: `grid-column: ${brs[0] + this.column_offset} / ${
+            brs[1] + this.column_offset
+          };`,
+        });
+      })
+    );
+    console.log("daysToRender", daysToRender);
+    return daysToRender;
   },
+
   getNumberOfNonHeaderGridColumnsToRender() {
     let k = 0;
     for (let i = 0; i < this.kw_is_collapsed.length; i++) {
