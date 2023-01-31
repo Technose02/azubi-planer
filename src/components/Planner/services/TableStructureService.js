@@ -52,7 +52,6 @@ class TableStructureService extends Service {
   // es lohnt sich daher, diese einmal für alle Tage zu bestimmen und als Referenz in einem Cache abzulegen - auch wenn dieser recht
   // oft erneuert werden muss (bei jedem Ein- oder Ausklappen einer KW-Spalte)
   _generateDayOfYearToGridIntervalMapping() {
-    console.log("_generateDayOfYearToGridIntervalMapping called");
     const dataGridColumnsForDayOfYear = [];
 
     const dayOfYearIndicesInCalenderWeeks =
@@ -140,14 +139,14 @@ class TableStructureService extends Service {
     return k;
   }
 
-  //// Erzeugt die Strukturen die die Template des Planners zum Erzeugen der Monats-Felder der obersten Kopfzeile verwendet
+  //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Monats-Felder der obersten Kopfzeile verwendet
   getMonthHeaderRowObjects() {
-    const monthsArray =
-      this.getEntityArrays().daysInMonthAsIndicesOfDayStructure;
-
     const months = [];
 
     const monthNames = this._serviceRegister.calenderService.MONTH_NAMES;
+
+    const monthsArray =
+      this.getEntityArrays().daysInMonthAsIndicesOfDayStructure;
 
     const dayOfYearToGridIntervalMapping =
       this.getDayOfYearToGridIntervalMapping();
@@ -179,6 +178,48 @@ class TableStructureService extends Service {
       });
     });
     return months;
+  }
+
+  //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Kalenderwochen-Felder der zweiten Kopfzeile verwendet
+  getWeekHeaderRowObjects() {
+    const weeks = [];
+
+    const weeksArray = this.getEntityArrays().daysInWeekAsIndicesOfDayStructure;
+
+    const dayOfYearToGridIntervalMapping =
+      this.getDayOfYearToGridIntervalMapping();
+
+    const calenderWeeksCollapsedStates =
+      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+
+    weeksArray.forEach((dayStructureIndices, weekNumber) => {
+      const weekName =
+        weekNumber >= 1 && weekNumber <= 52
+          ? `KW ${weekNumber.toString().padStart(2, "0")}`
+          : "";
+
+      const indexOfFirstDayCurrentWeek = dayStructureIndices[0];
+      const startColumn =
+        this.HEADER_COLUMNS +
+        dayOfYearToGridIntervalMapping[indexOfFirstDayCurrentWeek][0];
+
+      const indexOfLastDayCurrentWeek = dayStructureIndices.at(-1);
+
+      let endColumn =
+        this.HEADER_COLUMNS +
+        dayOfYearToGridIntervalMapping[indexOfLastDayCurrentWeek][1];
+
+      if (calenderWeeksCollapsedStates[weekNumber]) {
+        endColumn = startColumn + this.BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC_BASE_COLUMN_WIDTH GridColumns zu verwenden
+      }
+
+      weeks.push({
+        name: weekName,
+        week_number: weekNumber,
+        style_: `grid-column: ${startColumn} / ${endColumn + 1};`,
+      });
+    });
+    return weeks;
   }
 }
 

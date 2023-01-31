@@ -96,8 +96,9 @@ class CalenderService extends Service {
     const firstDayForTable = this.determineFirstDayForTable(year);
     const lastDayForTable = this.determineLastDayForTable(year);
 
-    // gibt es eine KW0?
-    const hasKW0 = firstDayForTable.getFullYear() < year;
+    // ist der 4.1 in der ersten Woche des Zeitraums?
+    const janFourInFirstWeek =
+      this.distanceInDays(firstDayForTable, new Date(year, 0, 4)) < 7;
 
     // For-Schleife über alle Tage des relevanten Bereichs
     // Offset für dayOfYear-Index berücksichtigen. Konvention: der erste Januar muss Index 0 haben
@@ -106,8 +107,8 @@ class CalenderService extends Service {
       firstDayForTable
     );
 
-    // Offeset für die Wochennummer korrekt setzen
-    let weekCounter = hasKW0 ? 0 : 1;
+    // Offset für die Wochennummer korrekt setzen
+    let weekCounter = janFourInFirstWeek ? 1 : 0;
     let subCounterWeeks = 0;
     let idx = 0;
 
@@ -116,10 +117,10 @@ class CalenderService extends Service {
       let monthIdx = month;
       let dayInMonth = d.getDate();
       let dayOfYear = dayOfYearCounter++;
-      if (weekCounter === 0 && dayInMonth > 20) {
+      if (weekCounter <= 1 && dayInMonth > 20) {
         month = 12;
         monthIdx = 0;
-      } else if (weekCounter === 53 && dayInMonth < 8) {
+      } else if (weekCounter >= 52 && dayInMonth < 8) {
         month = 1;
         monthIdx = 13;
       }

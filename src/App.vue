@@ -76,7 +76,7 @@ import PlannerEntry from "./components/Planner/PlannerEntry.vue";
 export default {
   data() {
     return {
-      year: 2024,
+      year: 2023,
     };
   },
   components: {

@@ -21,8 +21,10 @@
         {{ m.name }}
       </div>
       <div
-        :class="`planner-cell planner-header-row planner-header-row-week planner-header-row-week--${w.kw_idx}`"
-        v-for="w in this.store.getWeekHeaderColumnsToRender()"
+        :class="`planner-cell planner-header-row planner-header-row-week planner-header-row-week--${
+          w.week_number /*w.kw_idx*/
+        }`"
+        v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects() /*this.store.getWeekHeaderColumnsToRender()*/"
         :style="w.style_"
       >
         {{ w.name }}
@@ -123,10 +125,6 @@ export default {
         );
         e.target.classList.remove("collapsed");
       }
-
-      console.log(
-        this.serviceManager.tableStructureService.getDayOfYearToGridIntervalMapping()
-      );
     },
   },
   created() {
@@ -134,7 +132,11 @@ export default {
     this.serviceManager = initServices(this.year, this.rows);
 
     // Test
-    console.log();
+    //console.log(this.serviceManager.tableStructureService.getEntityArrays());
+    //console.log(
+    //  this.serviceManager.tableStructureService.getMonthHeaderRowObjects(),
+    //  this.serviceManager.tableStructureService.getWeekHeaderRowObjects()
+    //);
     //////////////////////////////////////////////////////////
 
     this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);
