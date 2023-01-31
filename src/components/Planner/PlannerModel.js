@@ -17,6 +17,9 @@ class PlannerModel {
 
   WEEKDAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
+  // eine "logische" Spalte besteht aus LOGIC_BASE_COLUMN_WIDTH GridColumns
+  LOGIC_BASE_COLUMN_WIDTH = 7;
+
   constructor(columnOffset, rowOffset, year, rowHeaderData, store) {
     this.rowHeaderData = rowHeaderData;
     this.store = store;
@@ -28,6 +31,7 @@ class PlannerModel {
     this.store.row_keys = rowHeaderData.map((r) => r.key);
     this.store.caches = {
       cachesForYear: new Map(),
+      cachesForCollapsedState: new Map(),
     };
     this.store.state = {
       kwCollapseStates: [],
@@ -66,6 +70,59 @@ class PlannerModel {
   }
 
   //// CACHES
+  getCacheForCollapsedState() {
+    const hash =
+      this.getCollapsedStates()
+        .map((s) => (s ? "+" : "-"))
+        .join(".") || "empty";
+
+    if (!this.store.caches.cachesForCollapsedState.has(hash)) {
+      this.store.caches.cachesForCollapsedState.set(
+        hash,
+        this.fillCachesForCollapsedState(this.store.state.kwCollapseStates)
+      );
+    }
+    return this.store.caches.cachesForCollapsedState.get(hash);
+  }
+  fillCachesForCollapsedState(collapsedState) {
+    const cacheValue = {
+      dataGridColumnsForDayOfYear: [],
+    };
+
+    const daysOfKWs = this.getCacheForYear().weeks;
+
+    let data_column_offset = 0;
+    for (let kw_idx = 0; kw_idx < daysOfKWs.length; kw_idx++) {
+      const days_of_week = daysOfKWs[kw_idx];
+
+      if (collapsedState[kw_idx]) {
+        days_of_week.forEach((day_of_year, idx) => {
+          const startGridColumn = data_column_offset + idx + 1;
+          cacheValue.dataGridColumnsForDayOfYear[day_of_year] = [
+            startGridColumn,
+            startGridColumn,
+          ];
+        });
+      } else {
+        days_of_week.forEach((day_of_year, idx) => {
+          const startGridColumn =
+            data_column_offset + this.LOGIC_BASE_COLUMN_WIDTH * idx + 1;
+          cacheValue.dataGridColumnsForDayOfYear[day_of_year] = [
+            startGridColumn,
+            startGridColumn + this.LOGIC_BASE_COLUMN_WIDTH - 1,
+          ];
+        });
+      }
+      data_column_offset += collapsedState[kw_idx]
+        ? // bei kollabierten KWs wird nur ein Tag gerendert, dieser dann aber mit der Breite LOGIC_BASE_COLUMN_WIDTH
+          // daher muss hier als offset die LOGIC_BASE_COLUMN_WIDTH gewählt werden
+          this.LOGIC_BASE_COLUMN_WIDTH
+        : this.LOGIC_BASE_COLUMN_WIDTH * days_of_week.length;
+    }
+
+    return cacheValue;
+  }
+
   getCacheForYear(year = this.store.year) {
     if (!this.store.caches.cachesForYear.has(year)) {
       this.store.caches.cachesForYear.set(

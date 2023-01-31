@@ -117,8 +117,8 @@ export default {
     this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);
     this.rowTitles = this.rows.map((r) => r.title);
 
-    this.store.model.getCacheForYear().weeks.forEach((w) => {
-      this.store.model.setCollapsedState(w, false);
+    this.store.model.getCacheForYear().weeks.forEach((_, id) => {
+      this.store.model.setCollapsedState(id, false);
     });
   },
 };

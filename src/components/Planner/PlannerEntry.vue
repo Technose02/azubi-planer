@@ -22,11 +22,14 @@ export default {
   },
   methods: {
     computeStyle() {
+      const dataGridColumnsForDayOfYear =
+        this.store.model.getCacheForCollapsedState()
+          .dataGridColumnsForDayOfYear;
       const colStart =
-        this.store.getDataGridColumnsForDayOfYear(this.daysBlockedStart)[0] +
+        dataGridColumnsForDayOfYear[this.daysBlockedStart][0] +
         this.store.column_offset;
       let colEnd =
-        this.store.getDataGridColumnsForDayOfYear(this.daysBlockedEnd)[1] +
+        dataGridColumnsForDayOfYear[this.daysBlockedEnd][1] +
         this.store.column_offset;
 
       // Schönheitskorrektur die nur bei angefangener KW01 des Folgejahres am Ende des Planers

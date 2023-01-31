@@ -2,11 +2,7 @@ import { reactive } from "vue";
 import Interval from "../Interval";
 import GridAssistant from "./GridAssistant";
 
-// eine "logische" Spalte besteht aus LOGIC_BASE_COLUMN_WIDTH GridColumns
-const LOGIC_BASE_COLUMN_WIDTH = 7;
-
 export const plannerStore = reactive({
-  LOGIC_BASE_COLUMN_WIDTH: LOGIC_BASE_COLUMN_WIDTH, // export if needed
   year: 0,
   column_offset: 0,
   row_offset: 0,
@@ -44,6 +40,9 @@ export const plannerStore = reactive({
       return daysForRender;
     }
 
+    const dataGridColumnsForDayOfYear =
+      this.model.getCacheForCollapsedState().dataGridColumnsForDayOfYear;
+
     // Daten-Spalten beginnen mit Spalte offset ; die letzte Datenspalte ist offset+this.getNumberOfNonHeaderGridColumnsToRender(), da rechts kein offset vorgesehen ist!
     const firstDataCol = this.column_offset;
     const lastDataCol =
@@ -55,8 +54,8 @@ export const plannerStore = reactive({
       .map(
         (i) =>
           new Interval(
-            this.getDataGridColumnsForDayOfYear(i.start)[0],
-            this.getDataGridColumnsForDayOfYear(i.end)[1]
+            dataGridColumnsForDayOfYear[i.start][0],
+            dataGridColumnsForDayOfYear[i.end][1]
           )
       );
 
@@ -66,7 +65,7 @@ export const plannerStore = reactive({
     const ga = new GridAssistant(
       firstDataCol,
       lastDataCol,
-      this.LOGIC_BASE_COLUMN_WIDTH
+      this.model.LOGIC_BASE_COLUMN_WIDTH
     );
 
     const daysToRender = [];
@@ -97,56 +96,26 @@ export const plannerStore = reactive({
       // ansonsten so viele wie Tage darin enthalten sind
       k += this.model.getCollapsedState(i) ? 1 : cacheForYear.weeks[i].length;
     }
-    console.log((LOGIC_BASE_COLUMN_WIDTH * k) / 7);
-    return LOGIC_BASE_COLUMN_WIDTH * k;
+    return this.model.LOGIC_BASE_COLUMN_WIDTH * k;
   },
-  getDataGridColumnsForDayOfYear(dayOfYear) {
-    //console.log(`getDataGridColumnsForDayOfYear(${dayOfYear}) called`);
-    const daysOfKWs = this.model.getCacheForYear().weeks;
-
-    let data_column_offset = 0;
-    for (let kw_idx = 0; kw_idx < daysOfKWs.length; kw_idx++) {
-      const days_of_week = daysOfKWs[kw_idx];
-      if (days_of_week.includes(dayOfYear)) {
-        if (this.model.getCollapsedState(kw_idx)) {
-          const startGridColumn =
-            data_column_offset + days_of_week.indexOf(dayOfYear) + 1;
-          return [startGridColumn, startGridColumn];
-        } else {
-          const startGridColumn =
-            data_column_offset +
-            LOGIC_BASE_COLUMN_WIDTH * days_of_week.indexOf(dayOfYear) +
-            1;
-          return [
-            startGridColumn,
-            startGridColumn + LOGIC_BASE_COLUMN_WIDTH - 1,
-          ];
-        }
-      }
-      data_column_offset += this.model.getCollapsedState(kw_idx)
-        ? // bei kollabierten KWs wird nur ein Tag gerendert, dieser dann aber mit der Breite LOGIC_BASE_COLUMN_WIDTH
-          // daher muss hier als offset die LOGIC_BASE_COLUMN_WIDTH gewählt werden
-          LOGIC_BASE_COLUMN_WIDTH
-        : LOGIC_BASE_COLUMN_WIDTH * days_of_week.length;
-    }
-    throw error(`provided day ${dayOfYear} out of bounds`);
-  },
-
   getMonthHeaderColumnsToRender() {
     const months = [];
 
     const cacheForYear = this.model.getCacheForYear();
 
+    const dataGridColumnsForDayOfYear =
+      this.model.getCacheForCollapsedState().dataGridColumnsForDayOfYear;
+
     this.model.MONTH_NAMES.forEach((month_name, month_idx) => {
       const days = cacheForYear.months[month_idx];
       const startColumn =
-        this.column_offset + this.getDataGridColumnsForDayOfYear(days[0])[0];
+        this.column_offset + dataGridColumnsForDayOfYear[days[0]][0];
       const lastDayOfMonthAsDayStructure = cacheForYear.days[days.at(-1) - 1];
       let endColumn =
         this.column_offset +
-        this.getDataGridColumnsForDayOfYear(
+        dataGridColumnsForDayOfYear[
           lastDayOfMonthAsDayStructure.day_of_year
-        )[1];
+        ][1];
       const is_in_last_week_of_year =
         lastDayOfMonthAsDayStructure.week_idx === cacheForYear.weeks.length - 1;
       if (
@@ -168,6 +137,9 @@ export const plannerStore = reactive({
   getWeekHeaderColumnsToRender() {
     const weeks = [];
     const cacheForYear = this.model.getCacheForYear();
+    const dataGridColumnsForDayOfYear =
+      this.model.getCacheForCollapsedState().dataGridColumnsForDayOfYear;
+
     cacheForYear.weeks.forEach((days, kw_idx) => {
       const week_number = cacheForYear.week_0 ? kw_idx : kw_idx + 1;
       const week_name =
@@ -175,12 +147,11 @@ export const plannerStore = reactive({
           ? `KW ${week_number.toString().padStart(2, "0")}`
           : "";
       const startColumn =
-        this.column_offset + this.getDataGridColumnsForDayOfYear(days[0])[0];
+        this.column_offset + dataGridColumnsForDayOfYear[days[0]][0];
       let endColumn =
-        this.column_offset +
-        this.getDataGridColumnsForDayOfYear(days.at(-1))[1];
+        this.column_offset + dataGridColumnsForDayOfYear[days.at(-1)][1];
       if (this.model.getCollapsedState(kw_idx)) {
-        endColumn = startColumn + LOGIC_BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC_BASE_COLUMN_WIDTH GridColumns zu verwenden
+        endColumn = startColumn + this.model.LOGIC_BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC_BASE_COLUMN_WIDTH GridColumns zu verwenden
       }
       weeks.push({
         name: week_name,
@@ -194,6 +165,8 @@ export const plannerStore = reactive({
     const days = [];
 
     const modelCacheForYear = this.model.getCacheForYear();
+    const dataGridColumnsForDayOfYear =
+      this.model.getCacheForCollapsedState().dataGridColumnsForDayOfYear;
 
     // Im Fall von "collapsed" KWs ist nur ein Tag zu rendern. Über dieses Array
     // merken wir uns, ob zu einer KW schon ein Tag mit render:true gepushed wurde
@@ -203,7 +176,8 @@ export const plannerStore = reactive({
 
     modelCacheForYear.days.forEach((day_structure) => {
       const day_of_year = day_structure.day_of_year;
-      let data_columns = this.getDataGridColumnsForDayOfYear(day_of_year);
+
+      let data_columns = [...dataGridColumnsForDayOfYear[day_of_year]];
 
       /* Anpassung, da hier ein Workaround greift. Im Falle einer
       kollabierten KW sollen nicht LOGIC_BASE_COLUMN_WIDTH kurze Tage sondern ein Langer
@@ -211,7 +185,8 @@ export const plannerStore = reactive({
         überhaupt gerendert werden soll).
         Daher nicht "data_columns[1]" sondern fix "data_columns[0] + LOGIC_BASE_COLUMN_WIDTH - 1"
         */
-      data_columns[1] = data_columns[0] + LOGIC_BASE_COLUMN_WIDTH - 1;
+      data_columns[1] =
+        data_columns[0] + this.model.LOGIC_BASE_COLUMN_WIDTH - 1;
 
       const startColumn = this.column_offset + data_columns[0];
       const endColumn = this.column_offset + data_columns[1];
