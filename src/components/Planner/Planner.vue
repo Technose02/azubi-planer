@@ -8,11 +8,13 @@
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 24rem repeat(${this.store.getNumberOfNonHeaderGridColumnsToRender()}, 0.5rem);`"
+      :style="`grid-template-columns: 24rem repeat(${
+        this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns() /*this.store.getNumberOfNonHeaderGridColumnsToRender()*/
+      }, 0.5rem);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
-        v-for="m in this.store.getMonthHeaderColumnsToRender()"
+        v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects() /*this.store.getMonthHeaderColumnsToRender()*/"
         :class="`planner-header-row-month--${m.month_number}`"
         :style="m.style_"
       >
@@ -108,11 +110,23 @@ export default {
 
       if (!this.store.model.getCollapsedState(kw_idx)) {
         this.store.model.setCollapsedState(kw_idx, true);
+        this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
+          kw_idx,
+          true
+        );
         e.target.classList.add("collapsed");
       } else {
         this.store.model.setCollapsedState(kw_idx, false);
+        this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
+          kw_idx,
+          false
+        );
         e.target.classList.remove("collapsed");
       }
+
+      console.log(
+        this.serviceManager.tableStructureService.getDayOfYearToGridIntervalMapping()
+      );
     },
   },
   created() {
@@ -120,7 +134,7 @@ export default {
     this.serviceManager = initServices(this.year, this.rows);
 
     // Test
-    console.log(this.serviceManager.tableStructureService.getEntityArrays());
+    console.log();
     //////////////////////////////////////////////////////////
 
     this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);

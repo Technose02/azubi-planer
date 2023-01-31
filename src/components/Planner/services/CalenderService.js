@@ -1,6 +1,23 @@
 import Service from "./Service";
 
 class CalenderService extends Service {
+  MONTH_NAMES = [
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+  ];
+
+  WEEKDAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
   // Simple Iterator-Methode um den Folge-Tag zu ermitteln. Die Korrektur beim Monats-Überlauf
   // erfolgt intern (getestet!)
   _nextDay = (date) =>
@@ -93,14 +110,16 @@ class CalenderService extends Service {
     let weekCounter = hasKW0 ? 0 : 1;
     let subCounterWeeks = 0;
     let idx = 0;
+
     for (let d = firstDayForTable; d <= lastDayForTable; d = this._nextDay(d)) {
       let month = d.getMonth() + 1; // in Date ist der Monat als Index kodiert (0..11)
       let monthIdx = month;
+      let dayInMonth = d.getDate();
       let dayOfYear = dayOfYearCounter++;
-      if (weekCounter === 0) {
+      if (weekCounter === 0 && dayInMonth > 20) {
         month = 12;
         monthIdx = 0;
-      } else if (weekCounter === 53) {
+      } else if (weekCounter === 53 && dayInMonth < 8) {
         month = 1;
         monthIdx = 13;
       }
@@ -108,7 +127,7 @@ class CalenderService extends Service {
       const dayStructure = {
         day_of_year: dayOfYear,
         in_month: month,
-        day_of_month: d.getDate(),
+        day_of_month: dayInMonth,
         in_week: weekCounter,
         day_of_week: (d.getDay() + 6) % 7, // in den Entities sollen Wochen mit einem Montag und Index 0 beginnen
       };

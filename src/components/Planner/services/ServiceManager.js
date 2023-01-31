@@ -2,6 +2,7 @@ import createCalenderService from "./CalenderService";
 import createTableStructureService from "./TableStructureService";
 import createTableDataService from "./TableDataService";
 import createCacheService from "./CacheService";
+import createTableStateService from "./TableStateService";
 
 /*
 Der Service Manager hält alle Service-Instanzen in seinem Service-Register. Ferner kanalisiert
@@ -16,6 +17,7 @@ const initServices = function (year, dataHeaders) {
   const tableStructureService = createTableStructureService(year);
   const tableDataService = createTableDataService(dataHeaders);
   const cacheService = createCacheService();
+  const tableStateService = createTableStateService();
   //...
 
   // Service-Instanzen registrieren (1: Register aufbauen)
@@ -24,6 +26,7 @@ const initServices = function (year, dataHeaders) {
     tableStructureService,
     tableDataService,
     cacheService,
+    tableStateService,
     //...
   };
 
@@ -32,13 +35,15 @@ const initServices = function (year, dataHeaders) {
   tableStructureService._serviceRegister = serviceRegister;
   tableDataService._serviceRegister = serviceRegister;
   cacheService._serviceRegister = serviceRegister;
+  tableStateService._serviceRegister = serviceRegister;
   //...
 
   // Instanzen initialisieren rufen. Hier ist ggf. eine feste Reihenfolge einzuhalten
   serviceRegister.calenderService._init();
   serviceRegister.tableDataService._init();
   serviceRegister.cacheService._init();
-  serviceRegister.tableStructureService._init(); // benötigt in init: calenderService in cacheService
+  serviceRegister.tableStructureService._init(); // benötigt in init: calenderService, cacheService
+  serviceRegister.tableStateService._init(); // benötigt in init: tableStateService
 
   return serviceRegister;
 };
