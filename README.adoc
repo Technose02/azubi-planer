@@ -2,6 +2,26 @@
 
 Ein Versuch einer flexiblen grafischen Oberfläche für die Blockplanung der Azubis
 
+== Kalender-Ansicht
+* Es werden alle Tage des gewählten Kalenderjahres angezeit
+* Zusätzlich werden alle Randtage des Vor- und oder des Folgejahres angezeigt
+die nötig sind, damit der Gesamtzeitraum ausschließlich komplette Kalenderwochen (`KW`, hier: von  Mo-So) enthält
+** Beispiel der 01.01.2022 sowie der 31.12.2022 waren jeweils Samstage. Für dieses Jahr würde die Übersich also
+über den Bereich des 01.01.2022 bis zum 31.12.2022 außerdem die Bereiche 27.12.2021-31.12.2021 sowie den 01.01.2023 beinhalten (_Padding_)
+* Die Ansicht enhält als Header-Zeilen
+** zu oberst die Monate mit Namen
+*** Zu klären: Wie soll hier auf die zusätzlichen Bereiche (Alt-Dezember-Anteil vor Januar, bzw. Zukunfts-Januar-Anteil nach Dezember)
+reagiert werden?
+** hierauf folgt die Zeile der Kalenderwochen, die ganz besonders wichtig für die Übersichtlichkeit ist - deswegen wird auch gerade hier auf eine einheitliche
+Länge über den gesamten Bereich gelegt:
+*** mit Namen angezeigt werden die KWs 1 bis 52. Die übrigen werden *ohne* Namen angezeigt
+*** die erste KW ist immer die, *in der der 4. Januar* liegt*.
+*** Kalenderwochen lassen sich per Klick auf ihr Feld in der KW-Kopfzeile *ein- und ausklappen*, so dass Kompromiss aus Detail und Übersicht bedarfsgerecht über den gesamten
+Bereich individuell und sehr intuitiv steuerbar entsteht
+*** ausgeklappte KWs stellen visuell einer Untertabelle dar, die als letzte Kopfzeile die Tage der Woche (Mo-So) als Spalten enthält. Direkt darunter beginnen dann auch die Datenzeilen des Kalenders
+*** eine eingeklappte, hier häufig auch als _kollabierte_ KW bezeichnete Kalenderwoche reduziert sich visuell auch eine Spalte. Die Zeilen unter ihr können die Daten nicht mehr sauber auf einzelne Tage aufgelöst darstellen, versuchen dies aber qualitativ anzunähern - d.h., Tabellendaten, die unterwöchig beginnen oder Enden haben einen sichtbaren Übergang innerhalb dieser reduzierten Datenzellen
+
+
 
 == TODOs
 * PlannerStore komplett refaktorieren
