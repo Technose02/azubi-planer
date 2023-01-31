@@ -73,10 +73,12 @@
 <script>
 import { plannerStore } from "./PlannerStore";
 import initPlannerModel from "./PlannerModel";
+import initServices from "./services/ServiceManager";
 
 export default {
   data() {
     return {
+      serviceManager: [],
       store: plannerStore,
       rowTitles: [],
     };
@@ -114,6 +116,10 @@ export default {
     },
   },
   created() {
+    // Hier und nur hier wird der ServiceManager initialisiert
+    this.serviceManager = initServices(this.year, this.rows);
+    //////////////////////////////////////////////////////////
+
     this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);
     this.rowTitles = this.rows.map((r) => r.title);
 
