@@ -1,6 +1,7 @@
 import createCalenderService from "./CalenderService";
 import createTableStructureService from "./TableStructureService";
 import createTableDataService from "./TableDataService";
+import createCacheService from "./CacheService";
 
 /*
 Der Service Manager hält alle Service-Instanzen in seinem Service-Register. Ferner kanalisiert
@@ -10,22 +11,34 @@ reactive-Anteil, der zwischen den Komponenten geteilt wird
 */
 
 const initServices = function (year, dataHeaders) {
-  const calenderService = createCalenderService(year);
-  const tableStructureService = createTableStructureService();
+  // Service-Instanzen erstellen
+  const calenderService = createCalenderService();
+  const tableStructureService = createTableStructureService(year);
   const tableDataService = createTableDataService(dataHeaders);
+  const cacheService = createCacheService();
   //...
 
+  // Service-Instanzen registrieren (1: Register aufbauen)
   const serviceRegister = {
     calenderService,
     tableStructureService,
     tableDataService,
+    cacheService,
     //...
   };
 
+  // Service-Instanzen registrieren (2: Register zuweisen)
   calenderService._serviceRegister = serviceRegister;
   tableStructureService._serviceRegister = serviceRegister;
   tableDataService._serviceRegister = serviceRegister;
+  cacheService._serviceRegister = serviceRegister;
   //...
+
+  // Instanzen initialisieren rufen. Hier ist ggf. eine feste Reihenfolge einzuhalten
+  serviceRegister.calenderService._init();
+  serviceRegister.tableDataService._init();
+  serviceRegister.cacheService._init();
+  serviceRegister.tableStructureService._init(); // benötigt in init: calenderService in cacheService
 
   return serviceRegister;
 };

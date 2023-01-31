@@ -118,6 +118,9 @@ export default {
   created() {
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows);
+
+    // Test
+    console.log(this.serviceManager.tableStructureService.getEntityArrays());
     //////////////////////////////////////////////////////////
 
     this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);

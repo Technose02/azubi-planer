@@ -7,6 +7,8 @@ class TableDataService extends Service {
     super();
     this._dataHeaders = dataHeaders;
   }
+
+  _init() {}
 }
 
 const createTableDataService = function (dataHeaders) {
