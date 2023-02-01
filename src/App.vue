@@ -25,7 +25,7 @@
           name="Anwendungsentwicklung"
         ></planner-entry>
         <planner-entry
-          :row-keys="['ssebastian', 'iingo']"
+          :row-keys="['ddennis', 'iingo']"
           :start-date="new Date(this.year, 0, 23)"
           :end-date="new Date(this.year, 0, 31)"
           color="#AC8"
