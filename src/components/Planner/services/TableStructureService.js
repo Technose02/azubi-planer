@@ -221,6 +221,94 @@ class TableStructureService extends Service {
     });
     return weeks;
   }
+
+  //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Tag-Felder der dritten Kopfzeile verwendet
+  getDayHeaderRowObjects() {
+    const days = [];
+
+    const weekdayNames = this._serviceRegister.calenderService.WEEKDAY_NAMES;
+
+    const entityArrays = this.getEntityArrays();
+
+    const dayOfYearToGridIntervalMapping =
+      this.getDayOfYearToGridIntervalMapping();
+
+    const calenderWeeksCollapsedStates =
+      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+
+    // Unter einer kollabierten KW soll nur ein Feld (in der breite eines Tages im ausgeklappten Zustand)
+    // angezeigt werden. Hier filtern wir die Liste der Tage zu einer Woche so vor, dass am Ende in einer
+    // kollabierten Woche nur der erste und der letzte der ursprünglichen sieben Tage bleibt
+    // Bei dieser Wahl können noch immer Meta-Aussagen über gesamten Wochenbereich bestimmt werden, aber
+    // gleichzeitig ist eindeutig feststellbar, dass es sich um eine kollabierte Woche handelt
+    // (immer 2Tage! Nicht kollabiert: immer 7 Tage!)
+    const filteredDaysInWeekAsIndices =
+      entityArrays.daysInWeekAsIndicesOfDayStructure.map(
+        (daysInWeekAsIdx, idx) =>
+          calenderWeeksCollapsedStates[idx]
+            ? [daysInWeekAsIdx[0], daysInWeekAsIdx.at(-1)]
+            : daysInWeekAsIdx
+      );
+
+    filteredDaysInWeekAsIndices.forEach((daysOfWeekIndices, weekNumber) => {
+      if (daysOfWeekIndices.length === 2) {
+        // Der Tag-Feld-Bereich einer kollabierten Kalenderwoche
+        const firstDay = entityArrays.dayStructures[daysOfWeekIndices[0]];
+        const lastDay = entityArrays.dayStructures[daysOfWeekIndices[1]];
+        const startDataColumn =
+          dayOfYearToGridIntervalMapping[daysOfWeekIndices[0]][0];
+        const endDataColumn = startDataColumn + this.BASE_COLUMN_WIDTH - 1;
+
+        let month_number = firstDay.in_month;
+        if (firstDay.in_month !== lastDay.in_month) {
+          month_number = undefined;
+        }
+        let not_this_year = firstDay.notThisYear;
+        if (firstDay.notThisYear !== lastDay.notThisYear) {
+          not_this_year = undefined;
+        }
+
+        days.push({
+          day_of_year: undefined,
+          day_of_month: undefined,
+          day_of_week_str: undefined,
+          day_of_week: undefined,
+          week_number: weekNumber, // only valid meta-data
+          month_number: month_number,
+          not_this_year: not_this_year,
+          data_columns: [startDataColumn, endDataColumn],
+          style_: `grid-column: ${startDataColumn + this.HEADER_COLUMNS} / ${
+            endDataColumn + this.HEADER_COLUMNS + 1
+          };`,
+          display_text: false,
+          collapsed: true,
+        });
+      } else {
+        daysOfWeekIndices.forEach((dayIndex) => {
+          const dataColumns = dayOfYearToGridIntervalMapping[dayIndex];
+          const startDataColumn = dataColumns[0];
+          const endDataColumn = dataColumns[1];
+          const day = entityArrays.dayStructures[dayIndex];
+
+          days.push({
+            day_of_year: day.day_of_year,
+            day_of_month: day.day_of_month,
+            week_number: day.in_week,
+            month_number: day.in_month,
+            day_of_week_str: weekdayNames[day.day_of_week],
+            day_of_week: day.day_of_week,
+            data_columns: [...dataColumns],
+            style_: `grid-column: ${startDataColumn + this.HEADER_COLUMNS} / ${
+              endDataColumn + this.HEADER_COLUMNS + 1
+            };`,
+            display_text: true,
+            not_this_year: day.notThisYear,
+          });
+        });
+      }
+    });
+    return days;
+  }
 }
 
 const createTableStructureService = function (year) {
