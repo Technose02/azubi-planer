@@ -16,7 +16,7 @@ class CalenderService extends Service {
     "Dezember",
   ];
 
-  WEEKDAY_NAMES = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  WEEKDAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
   // Simple Iterator-Methode um den Folge-Tag zu ermitteln. Die Korrektur beim Monats-Überlauf
   // erfolgt intern (getestet!)
@@ -117,12 +117,15 @@ class CalenderService extends Service {
       let monthIdx = month;
       let dayInMonth = d.getDate();
       let dayOfYear = dayOfYearCounter++;
+      let notThisYear = false;
       if (weekCounter <= 1 && dayInMonth > 20) {
         month = 12;
         monthIdx = 0;
+        notThisYear = true;
       } else if (weekCounter >= 52 && dayInMonth < 8) {
         month = 1;
         monthIdx = 13;
+        notThisYear = true;
       }
 
       const dayStructure = {
@@ -131,6 +134,7 @@ class CalenderService extends Service {
         day_of_month: dayInMonth,
         in_week: weekCounter,
         day_of_week: (d.getDay() + 6) % 7, // in den Entities sollen Wochen mit einem Montag und Index 0 beginnen
+        notThisYear,
       };
 
       if (!entityArrays.daysInWeekAsIndicesOfDayStructure[weekCounter])
