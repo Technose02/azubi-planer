@@ -5,6 +5,8 @@
 </template>
 <script>
 import { plannerStore } from "./PlannerStore";
+import { store } from "./store";
+
 export default {
   data() {
     return {
@@ -12,6 +14,8 @@ export default {
       daysBlockedStart: 0,
       daysBlockedEnd: 0,
       rowsBlocked: [],
+
+      shared: store,
     };
   },
   props: {

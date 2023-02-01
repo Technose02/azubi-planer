@@ -122,6 +122,7 @@
 </template>
 <script>
 import { plannerStore } from "./PlannerStore";
+import { store } from "./store.js";
 import initPlannerModel from "./PlannerModel";
 import initServices from "./services/ServiceManager";
 
@@ -129,6 +130,7 @@ export default {
   data() {
     return {
       serviceManager: [],
+      shared: store,
       store: plannerStore,
       rowTitles: [],
     };
@@ -179,6 +181,7 @@ export default {
   created() {
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows);
+    this.shared.serviceManager = this.serviceManager;
 
     // Test
     //console.log(this.serviceManager.tableStructureService.getEntityArrays());
