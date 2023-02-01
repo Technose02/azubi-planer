@@ -1,7 +1,7 @@
 <template>
-  <div :style="computeStyle()" class="planner-cell data-cell planner-block">
+  <!--div :style="computeStyle()" class="planner-cell data-cell planner-block">
     <slot></slot>
-  </div>
+  </div-->
 </template>
 <script>
 import { plannerStore } from "./PlannerStore";
@@ -23,6 +23,7 @@ export default {
     startDate: Date,
     endDate: Date,
     color: String,
+    name: String,
   },
   methods: {
     computeStyle() {
@@ -72,6 +73,7 @@ export default {
     },
   },
   created() {
+    /*
     this.daysBlockedStart = this.store.model.dayOfYearFromDate(this.startDate);
     this.daysBlockedEnd = this.store.model.dayOfYearFromDate(this.endDate);
     this.rowsBlocked = this.rowKeys
@@ -83,7 +85,21 @@ export default {
         this.daysBlockedStart,
         this.daysBlockedEnd
       );
-    });
+    });*/
+  },
+  mounted() {
+    this.shared.serviceManager.tableDataService.importBlockData(
+      this.name,
+      this.startDate,
+      this.endDate,
+      {
+        style: {
+          color: this.color,
+        },
+        class: {},
+      },
+      this.rowKeys
+    );
   },
 };
 </script>

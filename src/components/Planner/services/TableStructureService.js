@@ -314,18 +314,59 @@ class TableStructureService extends Service {
   getDataHeaderColumnObjects() {
     const rows = [];
 
-    const dataHeaderRows =
-      this._serviceRegister.tableDataService.getDataHeaderRows();
+    const registeredRowKeys =
+      this._serviceRegister.tableDataService.getRegisteredRowKeys();
+    const registeredRowTitles =
+      this._serviceRegister.tableDataService.getRegisteredRowTitles();
 
-    dataHeaderRows.forEach((r, idx) => {
+    registeredRowKeys.forEach((key, keyIdx) => {
       rows.push({
-        key: r.key,
-        title: r.title,
+        key: key,
+        title: registeredRowTitles[keyIdx],
         column_style: `grid-column: ${this.HEADER_COLUMNS};`,
-        row_style: `grid-row: ${this.HEADER_ROWS + idx};`,
+        row_style: `grid-row: ${this.HEADER_ROWS + keyIdx};`,
       });
     });
     return rows;
+  }
+
+  //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Blöcke verwendet
+  getBlockDataRenderObjects() {
+    const blockDataRenderObjects = [];
+
+    const dayOfYearToGridIntervalMapping =
+      this.getDayOfYearToGridIntervalMapping();
+
+    const blockDataRenderObjectsArray =
+      this._serviceRegister.tableDataService.generateBlockDataRenderObjects();
+
+    const registeredRowKeys =
+      this._serviceRegister.tableDataService.getRegisteredRowKeys();
+
+    blockDataRenderObjectsArray.forEach((block) => {
+      const startColumn =
+        this.HEADER_COLUMNS +
+        dayOfYearToGridIntervalMapping[block.startDayOfYearIdx][0];
+      const endColumn =
+        this.HEADER_COLUMNS +
+        dayOfYearToGridIntervalMapping[block.endDayOfYearIdx][1];
+
+      blockDataRenderObjects.push({
+        block_name: block.name,
+        row_key: block.row_key,
+        style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
+          block.end_data_row_index + this.HEADER_ROWS + 1
+        }; grid-column: ${startColumn + this.HEADER_COLUMNS} / ${
+          endColumn + this.HEADER_COLUMNS + 1
+        }; background-color: ${block.renderData.style.color};`,
+      });
+    });
+    return blockDataRenderObjects;
+  }
+
+  //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Daten-Zellen verwendet, die frei sind
+  getNonBlockedDayFillingObjectsForRowByIndex(rowIndex) {
+    return []; // erstmal nur die Datenblöcke rendern
   }
 }
 

@@ -76,8 +76,23 @@
         {{ row.title }}
       </div>
 
-      <!-- Rendern der "Entries" -->
-      <slot></slot>
+      <!-- Rendern der Blöcke -->
+      <template style="display: none"><slot></slot></template>
+      <!-- Über den Slot werden lediglich Blöcke 'logisch' in den Planner geladen, nicht gerendert -->
+      <!-- Rendern der Block-Daten erfolgt nur direkt aus dem Model heraus in diesem div: -->
+      <div
+        v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
+        :class="[
+          'planner-cell',
+          'data-cell',
+          'planner-block',
+          b.block_name ? `planner-block--${b.block_name}` : '',
+          b.row_key ? `planner-row--${b.row_key}` : '',
+        ]"
+        :style="b.style_"
+      >
+        {{ b.block_name }}
+      </div>
 
       <!-- Rendern der freien "Data-Cells" -->
       <template
@@ -85,7 +100,11 @@
           row, rowIdx
         ) in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
       >
-        <template v-for="d in this.store.freeDaysToRender(rowIdx)">
+        <template
+          v-for="d in this.serviceManager.tableStructureService.getNonBlockedDayFillingObjectsForRowByIndex(
+            rowIdx
+          )"
+        >
           <div
             v-if="d.is_fill_day"
             :class="[
