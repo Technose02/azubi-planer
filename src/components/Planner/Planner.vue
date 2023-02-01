@@ -15,7 +15,11 @@
       <div
         class="planner-cell planner-header-row planner-header-row-month"
         v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects() /*this.store.getMonthHeaderColumnsToRender()*/"
-        :class="`planner-header-row-month--${m.month_number}`"
+        :class="[
+          Number.isFinite(m.month_number)
+            ? `planner-header-row-month--${m.month_number}`
+            : '',
+        ]"
         :style="m.style_"
       >
         {{ m.name }}
@@ -25,7 +29,9 @@
           'planner-cell',
           'planner-header-row',
           'planner-header-row-week',
-          w.week_number ? `planner-header-row-week--${w.week_number}` : '',
+          Number.isFinite(w.week_number)
+            ? `planner-header-row-week--${w.week_number}`
+            : '',
         ]"
         v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects() /*this.store.getWeekHeaderColumnsToRender()*/"
         :style="w.style_"
@@ -38,12 +44,12 @@
           'planner-cell',
           'planner-header-row',
           'planner-header-row-day',
-          d.day_of_year ? `day-year--${d.day_of_year}` : '',
-          d.month_number ? `month--${d.month_number}` : '',
-          d.week_number ? `week--${d.week_number}` : '',
-          d.day_of_week ? `day-week--${d.day_of_week}` : '',
-          d.day_of_month ? `day-month--${d.day_of_month}` : '',
-          d.day_of_year ? `day-year--${d.day_of_year}` : '',
+          Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
+          Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
+          Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+          Number.isFinite(d.day_of_week) ? `day-week--${d.day_of_week}` : '',
+          Number.isFinite(d.day_of_month) ? `day-month--${d.day_of_month}` : '',
+          Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
           d.not_this_year ? `not-this-year` : '',
           d.collapsed ? 'collapsed' : '',
         ]"
@@ -80,9 +86,11 @@
               'planner-cell',
               'data-cell',
               'fill-day',
-              d.day_of_year ? `day-of-year--${d.day_of_year}` : '',
-              d.week_number ? `week--${d.week_number}` : '',
-              d.month_number ? `month--${d.month_number}` : '',
+              Number.isFinite(d.day_of_year)
+                ? `day-of-year--${d.day_of_year}`
+                : '',
+              Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+              Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
             ]"
             :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
@@ -92,9 +100,11 @@
               'planner-cell',
               'data-cell',
               r ? `data-cell--${r}` : '',
-              d.day_of_year ? `day-of-year--${d.day_of_year}` : '',
-              d.week_number ? `week--${d.week_number}` : '',
-              d.month_number ? `month--${d.month_number}` : '',
+              Number.isFinite(d.day_of_year)
+                ? `day-of-year--${d.day_of_year}`
+                : '',
+              Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+              Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
             ]"
             :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
@@ -133,22 +143,26 @@ export default {
     },
     onClickKWHeaderField(e) {
       // determine KW-Index of clicked KW-HeaderField through class 'planner-header-row-week--??'
-      const kw_idx = Number(
+      const kwIdx = Number(
         Array.from(e.target.classList)
           .find((c) => c.startsWith("planner-header-row-week--"))
-          .split("--")[1]
+          ?.split("--")[1]
       );
-      if (!this.store.model.getCollapsedState(kw_idx)) {
-        this.store.model.setCollapsedState(kw_idx, true);
+      if (!Number.isFinite(kwIdx)) {
+        console.error("error: unable to determine the week to collapse/expand");
+        return;
+      }
+      if (!this.store.model.getCollapsedState(kwIdx)) {
+        this.store.model.setCollapsedState(kwIdx, true);
         this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
-          kw_idx,
+          kwIdx,
           true
         );
         e.target.classList.add("collapsed");
       } else {
-        this.store.model.setCollapsedState(kw_idx, false);
+        this.store.model.setCollapsedState(kwIdx, false);
         this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
-          kw_idx,
+          kwIdx,
           false
         );
         e.target.classList.remove("collapsed");
