@@ -1,18 +1,22 @@
 import Service from "./Service";
 
 class TableDataService extends Service {
-  _dataHeaders;
+  _dataHeaderRows;
 
-  constructor(dataHeaders) {
+  constructor(dataHeaderRows) {
     super();
-    this._dataHeaders = dataHeaders;
+    this._dataHeaderRows = dataHeaderRows;
   }
 
   _init() {}
+
+  getDataHeaderRows() {
+    return this._dataHeaderRows;
+  }
 }
 
-const createTableDataService = function (dataHeaders) {
-  return new TableDataService(dataHeaders);
+const createTableDataService = function (headerData) {
+  return new TableDataService(headerData);
 };
 
 export default createTableDataService;

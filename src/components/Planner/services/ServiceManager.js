@@ -11,11 +11,11 @@ Er stellt sicher, dass jede Service instanz Zugriff auf das Register hat und ist
 reactive-Anteil, der zwischen den Komponenten geteilt wird
 */
 
-const initServices = function (year, dataHeaders) {
+const initServices = function (year, dataHeaderRows) {
   // Service-Instanzen erstellen
   const calenderService = createCalenderService();
   const tableStructureService = createTableStructureService(year);
-  const tableDataService = createTableDataService(dataHeaders);
+  const tableDataService = createTableDataService(dataHeaderRows);
   const cacheService = createCacheService();
   const tableStateService = createTableStateService();
   //...

@@ -8,13 +8,11 @@
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 24rem repeat(${
-        this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns() /*this.store.getNumberOfNonHeaderGridColumnsToRender()*/
-      }, 0.5rem);`"
+      :style="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
-        v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects() /*this.store.getMonthHeaderColumnsToRender()*/"
+        v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects()"
         :class="[
           Number.isFinite(m.month_number)
             ? `planner-header-row-month--${m.month_number}`
@@ -33,13 +31,13 @@
             ? `planner-header-row-week--${w.week_number}`
             : '',
         ]"
-        v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects() /*this.store.getWeekHeaderColumnsToRender()*/"
+        v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects()"
         :style="w.style_"
       >
         {{ w.name }}
       </div>
       <div
-        v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects() /*this.store.getDayHeaderColumnsToRender()*/"
+        v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects()"
         :class="[
           'planner-cell',
           'planner-header-row',
@@ -67,19 +65,27 @@
         style="grid-column: 1; grid-row: 1 / 4"
       ></div>
       <div
-        class="planner-cell planner-header-column"
-        v-for="(r, idx) in this.rowTitles"
-        :style="`grid-column: 1; grid-row: ${idx + 4};`"
+        :class="[
+          'planner-cell',
+          'planner-header-column',
+          row.key ? `planner-header-column--${row.key}` : '',
+        ]"
+        v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+        :style="`${row.style_}`"
       >
-        {{ r }}
+        {{ row.title }}
       </div>
 
       <!-- Rendern der "Entries" -->
       <slot></slot>
 
       <!-- Rendern der freien "Data-Cells" -->
-      <template v-for="(r, idx) in this.rowTitles">
-        <template v-for="d in this.store.freeDaysToRender(idx)">
+      <template
+        v-for="(
+          row, rowIdx
+        ) in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+      >
+        <template v-for="d in this.store.freeDaysToRender(rowIdx)">
           <div
             v-if="d.is_fill_day"
             :class="[
@@ -91,22 +97,23 @@
                 : '',
               Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
               Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
+              row.key ? `data--${row.key}` : '',
             ]"
-            :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
+            :style="`${row.row_style} ${d.style_}`"
           ></div>
           <div
             v-else
             :class="[
               'planner-cell',
               'data-cell',
-              r ? `data-cell--${r}` : '',
+              row.key ? `data-cell--${row.key}` : '',
               Number.isFinite(d.day_of_year)
                 ? `day-of-year--${d.day_of_year}`
                 : '',
               Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
               Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
             ]"
-            :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
+            :style="`${row.row_style} ${d.style_}`"
           ></div>
         </template>
       </template>

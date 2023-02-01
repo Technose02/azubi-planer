@@ -309,6 +309,24 @@ class TableStructureService extends Service {
     });
     return days;
   }
+
+  //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der (noch einzigen) Daten Kopfspalte verwendet
+  getDataHeaderColumnObjects() {
+    const rows = [];
+
+    const dataHeaderRows =
+      this._serviceRegister.tableDataService.getDataHeaderRows();
+
+    dataHeaderRows.forEach((r, idx) => {
+      rows.push({
+        key: r.key,
+        title: r.title,
+        column_style: `grid-column: ${this.HEADER_COLUMNS};`,
+        row_style: `grid-row: ${this.HEADER_ROWS + idx};`,
+      });
+    });
+    return rows;
+  }
 }
 
 const createTableStructureService = function (year) {
