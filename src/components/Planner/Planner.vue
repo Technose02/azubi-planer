@@ -21,17 +21,32 @@
         {{ m.name }}
       </div>
       <div
-        :class="`planner-cell planner-header-row planner-header-row-week planner-header-row-week--${
-          w.week_number /*w.kw_idx*/
-        }`"
+        :class="[
+          'planner-cell',
+          'planner-header-row',
+          'planner-header-row-week',
+          w.week_number ? `planner-header-row-week--${w.week_number}` : '',
+        ]"
         v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects() /*this.store.getWeekHeaderColumnsToRender()*/"
         :style="w.style_"
       >
         {{ w.name }}
       </div>
       <div
-        v-for="d in this.store.getDayHeaderColumnsToRender()"
-        :class="`planner-cell planner-header-row planner-header-row-day day-year--${d.day_of_year} month--${d.month_number} week--${d.week_number} day-week--${d.day_of_week} day-month--${d.day_of_month}`"
+        v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects() /*this.store.getDayHeaderColumnsToRender()*/"
+        :class="[
+          'planner-cell',
+          'planner-header-row',
+          'planner-header-row-day',
+          d.day_of_year ? `day-year--${d.day_of_year}` : '',
+          d.month_number ? `month--${d.month_number}` : '',
+          d.week_number ? `week--${d.week_number}` : '',
+          d.day_of_week ? `day-week--${d.day_of_week}` : '',
+          d.day_of_month ? `day-month--${d.day_of_month}` : '',
+          d.day_of_year ? `day-year--${d.day_of_year}` : '',
+          d.not_this_year ? `not-this-year` : '',
+          d.collapsed ? 'collapsed' : '',
+        ]"
         :style="d.style_"
       >
         <div style="display: flex; flex-direction: column">
@@ -61,12 +76,26 @@
         <template v-for="d in this.store.freeDaysToRender(idx)">
           <div
             v-if="d.is_fill_day"
-            :class="`planner-cell data-cell fill-day day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
+            :class="[
+              'planner-cell',
+              'data-cell',
+              'fill-day',
+              d.day_of_year ? `day-of-year--${d.day_of_year}` : '',
+              d.week_number ? `week--${d.week_number}` : '',
+              d.month_number ? `month--${d.month_number}` : '',
+            ]"
             :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
           <div
             v-else
-            :class="`planner-cell data-cell data-cell--${r} day-of-year--${d.day_of_year} week--${d.week_number} month--${d.month_number}`"
+            :class="[
+              'planner-cell',
+              'data-cell',
+              r ? `data-cell--${r}` : '',
+              d.day_of_year ? `day-of-year--${d.day_of_year}` : '',
+              d.week_number ? `week--${d.week_number}` : '',
+              d.month_number ? `month--${d.month_number}` : '',
+            ]"
             :style="`grid-row: ${idx + this.store.row_offset}; ${d.style_}`"
           ></div>
         </template>
@@ -109,7 +138,6 @@ export default {
           .find((c) => c.startsWith("planner-header-row-week--"))
           .split("--")[1]
       );
-
       if (!this.store.model.getCollapsedState(kw_idx)) {
         this.store.model.setCollapsedState(kw_idx, true);
         this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
@@ -269,6 +297,12 @@ export default {
   grid-row: 3;
   background-color: #f7cac9;
 }
+
+.planner-header-row-day.not-this-year {
+  color: #888;
+  font-weight: lighter;
+}
+
 .planner-header-day-week {
   font-size: 1.2rem;
   font-weight: bold;
