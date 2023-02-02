@@ -4,6 +4,9 @@ class TableStateService extends Service {
   _calenderWeeksCollapsedStates;
   _year;
 
+  // Baustelle
+  _FORCE_RERENDER_HANDLE_FOR_PLANNER_COMPONENT = true;
+
   constructor() {
     super();
   }

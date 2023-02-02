@@ -2,7 +2,8 @@
   <!-- dirty hack for forced rerender -->
   <template
     v-if="
-      this.store.model.store.state._force_rerender_handle_for_planner_component
+      this.serviceManager.tableStateService
+        ._FORCE_RERENDER_HANDLE_FOR_PLANNER_COMPONENT
     "
   >
     <div
@@ -141,9 +142,7 @@
   </template>
 </template>
 <script>
-import { plannerStore } from "./PlannerStore";
 import { store } from "./store.js";
-import initPlannerModel from "./PlannerModel";
 import initServices from "./services/ServiceManager";
 
 export default {
@@ -151,7 +150,6 @@ export default {
     return {
       serviceManager: [],
       shared: store,
-      store: plannerStore,
       rowTitles: [],
     };
   },
@@ -163,7 +161,7 @@ export default {
   methods: {
     onClick(e) {
       e.preventDefault();
-      // Wählen des zuständigen Handlers
+      // Wählen des zuständigen Eventhandlers
       const target_classList = e.target.classList;
       if (target_classList.contains("planner-header-row-week")) {
         this.onClickKWHeaderField(e);
@@ -171,7 +169,7 @@ export default {
       e.stopPropagation();
     },
     onClickKWHeaderField(e) {
-      // determine KW-Index of clicked KW-HeaderField through class 'planner-header-row-week--??'
+      // bestimme den Kalenderwochen-Index des angeklickten KW-HeaderField über classList-Eintrag 'planner-header-row-week--??'
       const kwIdx = Number(
         Array.from(e.target.classList)
           .find((c) => c.startsWith("planner-header-row-week--"))
@@ -197,21 +195,6 @@ export default {
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows);
     this.shared.serviceManager = this.serviceManager;
-
-    // Test
-    //console.log(this.serviceManager.tableStructureService.getEntityArrays());
-    //console.log(
-    //  this.serviceManager.tableStructureService.getMonthHeaderRowObjects(),
-    //  this.serviceManager.tableStructureService.getWeekHeaderRowObjects()
-    //);
-    //////////////////////////////////////////////////////////
-
-    this.store.model = initPlannerModel(1, 4, this.year, this.rows, this.store);
-    this.rowTitles = this.rows.map((r) => r.title);
-
-    this.store.model.getCacheForYear().weeks.forEach((_, id) => {
-      this.store.model.setCollapsedState(id, false);
-    });
   },
 };
 </script>

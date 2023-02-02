@@ -1,20 +1,10 @@
-<template>
-  <!--div :style="computeStyle()" class="planner-cell data-cell planner-block">
-    <slot></slot>
-  </div-->
-</template>
+<template></template>
 <script>
-import { plannerStore } from "./PlannerStore";
 import { store } from "./store";
 
 export default {
   data() {
     return {
-      store: plannerStore,
-      daysBlockedStart: 0,
-      daysBlockedEnd: 0,
-      rowsBlocked: [],
-
       shared: store,
     };
   },
@@ -72,21 +62,7 @@ export default {
       };`;
     },
   },
-  created() {
-    /*
-    this.daysBlockedStart = this.store.model.dayOfYearFromDate(this.startDate);
-    this.daysBlockedEnd = this.store.model.dayOfYearFromDate(this.endDate);
-    this.rowsBlocked = this.rowKeys
-      .map((k) => this.store.model.getDataRowKeys().indexOf(k))
-      .filter((i) => i >= 0);
-    this.rowsBlocked.forEach((r) => {
-      this.store.model.addBlockedDataRange(
-        r,
-        this.daysBlockedStart,
-        this.daysBlockedEnd
-      );
-    });*/
-  },
+  created() {},
   mounted() {
     this.shared.serviceManager.tableDataService.importBlockData(
       this.name,
