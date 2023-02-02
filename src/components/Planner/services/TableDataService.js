@@ -21,11 +21,6 @@ class TableDataService extends Service {
     super();
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
-
-    // init BlockKey-Arrays in _assignedBlocks
-    this._registeredRowKeys.forEach((key) => {
-      this._assignedBlocks.set(key, []);
-    });
   }
 
   _init() {}
@@ -69,10 +64,9 @@ class TableDataService extends Service {
       renderData,
     });
 
-    // Füge Zuordnungen gemäß des rowKeys-Parameters hinzu:
-    rowKeys
-      .filter((k) => this._registeredRowKeys.indexOf(k) >= 0) // hier filtern um nur bekannte row-keys zu verarbeiten
-      .forEach((rowKey) => this._assignedBlocks.get(rowKey).push(blockId));
+    // Füge Zuordnungen gemäß rowKeys-Parameter ohne Duplikate hinzu
+    const mappings = this._assignedBlocks.get(blockId) ?? [];
+    this._assignedBlocks.set(blockId, [...new Set([...mappings, ...rowKeys])]);
   }
 
   // Erstellt aus den Informationen über die existierenden Blöcke und die Zuordnungen der Spalten zu eben diesen
@@ -82,30 +76,60 @@ class TableDataService extends Service {
 
     const blockDataRenderObjects = [];
 
-    // erstmal einfach, zusammenhängende Zeilen nicht erkennen, alles einzelnd (-> Durchstich):
-    for (const [row_key, assignedBlocks] of this._assignedBlocks) {
-      const dataRowIdx = this._registeredRowKeys.indexOf(row_key);
-      if (dataRowIdx < 0) {
+    for (const [blockId, assignedRows] of this._assignedBlocks) {
+      const dataRowIndices = assignedRows.map((k) => {
+        const i = this._registeredRowKeys.indexOf(k);
+        return i;
+      });
+      if (dataRowIndices.some((i) => i < 0)) {
         console.error(
           "This should never happen: provided row_key not found in registered rowKeys!"
         );
         assert(true);
       }
 
-      assignedBlocks.forEach((blockId) => {
+      // jetzt aus den dataRowIndices Cluster von Indices, die, sortiert, eine Lückenlose Kette ergeben:
+      let dataRowIndicesClusters = [];
+      /////////////
+      if (dataRowIndices.length === 1) {
+        dataRowIndicesClusters = [dataRowIndices];
+      } else {
+        dataRowIndices.sort((a, b) => a - b);
+        let k = dataRowIndices[0];
+        let currentCluster = [k];
+        dataRowIndices.slice(1).forEach((i) => {
+          if (i === k + 1) {
+            // i gehört zum aktuellen Cluster, also hinzufügen und k zu neuem Index setzen
+            // (Algorithmus nutzt, dass die Indizes aufsteigend sortiert sind)
+            currentCluster.push(i);
+          } else {
+            // i ist zu groß und kann nicht mehr zum aktuellen Cluster gehören. Da die
+            // Indizes sortiert sind kann dann kein weitere Index mehr zu diesem Cluster
+            // gehören
+            dataRowIndicesClusters.push(currentCluster);
+            currentCluster = [i];
+          }
+          k = i;
+        });
+        dataRowIndicesClusters.push(currentCluster);
+      }
+      //////////////////
+      dataRowIndicesClusters.forEach((dataRowIndices) => {
         const block = this._blockData.get(blockId);
+        const row_key_list = dataRowIndices
+          .map((i) => this._registeredRowKeys[i])
+          .join("-");
         blockDataRenderObjects.push({
           name: block.name,
           startDayOfYearIdx: block.startDayOfYearIdx,
           endDayOfYearIdx: block.endDayOfYearIdx,
           renderData: block.renderData,
-          row_key: row_key,
-          start_data_row_index: dataRowIdx,
-          end_data_row_index: dataRowIdx,
+          row_key_list: row_key_list,
+          start_data_row_index: dataRowIndices[0],
+          end_data_row_index: dataRowIndices.at(-1),
         });
       });
     }
-
     return blockDataRenderObjects;
   }
 }
