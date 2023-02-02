@@ -60,7 +60,7 @@
           name="ECL"
         ></planner-entry>
         <planner-entry
-          :row-keys="['iingo']"
+          :row-keys="['iingo', 'iilse', 'ddennis']"
           :start-date="new Date(this.year, 11, 25)"
           :end-date="new Date(this.year, 11, 30)"
           color="#048"
