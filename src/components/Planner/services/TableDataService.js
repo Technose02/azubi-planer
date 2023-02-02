@@ -1,5 +1,6 @@
 import Service from "./Service";
 import { assert } from "@vue/compiler-core";
+import Interval from "./../../Interval";
 
 class TableDataService extends Service {
   _registeredRowKeys;
@@ -131,6 +132,23 @@ class TableDataService extends Service {
       });
     }
     return blockDataRenderObjects;
+  }
+
+  getBlockDataIntervalsForRowIdx(rowIdx) {
+    const rowKey = this._registeredRowKeys[rowIdx];
+    const assignedBlockIds = [];
+    for (const [blockId, assignedRows] of this._assignedBlocks) {
+      if (assignedRows.includes(rowKey)) {
+        assignedBlockIds.push(blockId);
+      }
+    }
+
+    const blockDataIntervals = assignedBlockIds.map((blockId) => {
+      const block = this._blockData.get(blockId);
+      return new Interval(block.startDayOfYearIdx, block.endDayOfYearIdx);
+    });
+    blockDataIntervals.sort((i1, i2) => i1.start - i2.start);
+    return blockDataIntervals;
   }
 }
 const createTableDataService = function (headerData) {

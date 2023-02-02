@@ -32,7 +32,7 @@
           name="UHD"
         ></planner-entry>
         <planner-entry
-          :row-keys="['vvigo', 'ddanzo', 'iilse']"
+          :row-keys="['vvigo', 'iilse']"
           :start-date="new Date(this.year, 0, 30)"
           :end-date="new Date(this.year, 1, 19)"
           color="#FF0"

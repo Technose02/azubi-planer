@@ -1,4 +1,6 @@
 import Service from "./Service";
+import Interval from "./../../Interval";
+import GridAssistant from "./../GridAssistant";
 
 class TableStructureService extends Service {
   // dies ist die Anzahl an Grid-Columns für einen Tag des Kalenders
@@ -24,6 +26,21 @@ class TableStructureService extends Service {
 
   _init() {
     this.initializeTableStructure();
+  }
+
+  _createGridAssistant() {
+    // - Daten-Spalten beginnen mit Spalte 'this.HEADER_COLUMNS'
+    // -  da rechts kein offset vorgesehen ist ist die letzte Datenspalte die Summe
+    //      'this.HEADER_COLUMNS' + 'this.getNumberOfLogicalDataColumns()'
+    const firstDataCol = this.HEADER_COLUMNS;
+    const lastDataCol =
+      this.HEADER_COLUMNS + this.getNumberOfLogicalDataColumns();
+
+    return new GridAssistant(
+      this.HEADER_COLUMNS,
+      this.HEADER_COLUMNS + this.getNumberOfLogicalDataColumns(),
+      this.BASE_COLUMN_WIDTH
+    );
   }
 
   initializeTableStructure() {
@@ -366,7 +383,47 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Daten-Zellen verwendet, die frei sind
   getNonBlockedDayFillingObjectsForRowByIndex(rowIndex) {
-    return []; // erstmal nur die Datenblöcke rendern
+    const nonBlockedDayFillingObjects = [];
+
+    const blockIntervals =
+      this._serviceRegister.tableDataService.getBlockDataIntervalsForRowIdx(
+        rowIndex
+      );
+
+    const dayOfYearToGridIntervalMapping =
+      this.getDayOfYearToGridIntervalMapping();
+
+    // einen GridAssistant für die aktuelle "Collapsed-Situation" erzeugen
+    const gridAssistant = this._createGridAssistant();
+
+    // Blockdaten-Intervalle, so nicht leer, mappen von dayOfYearIndices auf GridColumns:
+    let dataColumnIntervals = [];
+    if (blockIntervals.length !== 0) {
+      dataColumnIntervals = blockIntervals.map(
+        (i) =>
+          new Interval(
+            dayOfYearToGridIntervalMapping[i.start][0],
+            dayOfYearToGridIntervalMapping[i.end][1]
+          )
+      );
+    }
+
+    // zu füllende Grid-Column-Intervalle (Gaps zwischen den Blockdaten-Intervallen sowie davor und dahinter) ermitteln:
+    let gapsToFill = gridAssistant.determineGapsToFill(dataColumnIntervals);
+
+    // Pro Lücke die passende BlockRangeSequence generieren und die resultierenden RenderObjects erzeugen
+    gapsToFill.forEach((i) =>
+      gridAssistant.generateBlockRangeSequenceFromInterval(i).forEach((brs) => {
+        nonBlockedDayFillingObjects.push({
+          is_fill_day: true,
+          day_of_year: -1,
+          style_: `grid-column: ${brs[0] + this.HEADER_COLUMNS} / ${
+            brs[1] + this.HEADER_COLUMNS
+          };`,
+        });
+      })
+    );
+    return nonBlockedDayFillingObjects;
   }
 }
 
