@@ -58,7 +58,7 @@ class TableStructureService extends Service {
       this.getEntityArrays().daysInWeekAsIndicesOfDayStructure;
 
     const calenderWeeksCollapsedStates =
-      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     let dataGridColumnOffset = 0;
     dayOfYearIndicesInCalenderWeeks.forEach(
@@ -99,7 +99,7 @@ class TableStructureService extends Service {
 
   getDayOfYearToGridIntervalMapping() {
     const calenderWeeksCollapsedStates =
-      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Lazy-Loading-Pattern
     let dataGridColumnsForDayOfYear =
@@ -126,7 +126,7 @@ class TableStructureService extends Service {
     // Nach Vorgabe enthält jede Woche (auch die am Rand) exakt sieben Tage.
 
     const calenderWeeksCollapsedStates =
-      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     const stepCollapsed = this.BASE_COLUMN_WIDTH; // eine logische Spalte (so breit wie ein Tag wenn nicht kollabiert) ist für eine kollabierte KW vorgesehen
     const stepNonCollapsed = 7 * stepCollapsed; // sieben Tage sind darzustellen wenn die KW nicht kollabiert ist
@@ -190,7 +190,7 @@ class TableStructureService extends Service {
       this.getDayOfYearToGridIntervalMapping();
 
     const calenderWeeksCollapsedStates =
-      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     weeksArray.forEach((dayStructureIndices, weekNumber) => {
       const weekName =
@@ -234,7 +234,7 @@ class TableStructureService extends Service {
       this.getDayOfYearToGridIntervalMapping();
 
     const calenderWeeksCollapsedStates =
-      this._serviceRegister.tableStateService.getCalenderWeeksCollapsedStates();
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Unter einer kollabierten KW soll nur ein Feld (in der breite eines Tages im ausgeklappten Zustand)
     // angezeigt werden. Hier filtern wir die Liste der Tage zu einer Woche so vor, dass am Ende in einer

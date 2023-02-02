@@ -18,15 +18,26 @@ class TableStateService extends Service {
     ).fill(false);
   }
 
-  getCalenderWeeksCollapsedStates() {
+  getCalenderWeekCollapsedStates() {
     return this._calenderWeeksCollapsedStates;
   }
 
-  getCalenderWeeksCollapsedState(calenderWeekNumber) {
+  getCalenderWeekCollapsedState(calenderWeekNumber) {
     return this._calenderWeeksCollapsedStates[calenderWeekNumber];
   }
-  setCalenderWeeksCollapsedState(calenderWeekNumber, state) {
+
+  setCalenderWeekCollapsedState(calenderWeekNumber, state) {
     this._calenderWeeksCollapsedStates[calenderWeekNumber] = state;
+  }
+
+  toggleCalenderWeekCollapseState(calenderWeekNumber) {
+    if (this.getCalenderWeekCollapsedState(calenderWeekNumber)) {
+      this.setCalenderWeekCollapsedState(calenderWeekNumber, false);
+      return false;
+    } else {
+      this.setCalenderWeekCollapsedState(calenderWeekNumber, true);
+      return true;
+    }
   }
 }
 
