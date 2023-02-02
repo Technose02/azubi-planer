@@ -48,6 +48,28 @@ class TableStructureService extends Service {
     );
   }
 
+  getGridAssistant() {
+    console.log(`TableStructureService::getGridAssistant() -- already cached`);
+
+    const calenderWeeksCollapsedState =
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
+
+    // Lazy-Loading-Pattern
+    let gridAssistant =
+      this._serviceRegister.cacheService.restoreGridAssistantForCollapsedState(
+        calenderWeeksCollapsedState
+      );
+    if (!gridAssistant) {
+      gridAssistant = this._createGridAssistant();
+
+      this._serviceRegister.cacheService.saveGridAssistantForCollapsedState(
+        calenderWeeksCollapsedState,
+        gridAssistant
+      );
+    }
+    return gridAssistant;
+  }
+
   initializeTableStructure() {
     console.log(`TableStructureService::initializeTableStructure()`);
 
@@ -87,13 +109,13 @@ class TableStructureService extends Service {
     const dayOfYearIndicesInCalenderWeeks =
       this.getEntityArrays().daysInWeekAsIndicesOfDayStructure;
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     let dataGridColumnOffset = 0;
     dayOfYearIndicesInCalenderWeeks.forEach(
       (dayOfYearIndicesInCalenderWeek, kwIdx) => {
-        if (calenderWeeksCollapsedStates[kwIdx]) {
+        if (calenderWeeksCollapsedState[kwIdx]) {
           // betrachtete Kalenderwoche ist kollabiert:
           dayOfYearIndicesInCalenderWeek.forEach(
             (dayOfYearIdx, positionInCurrentWeek) => {
@@ -132,20 +154,20 @@ class TableStructureService extends Service {
       `TableStructureService::getDayOfYearToGridIntervalMapping() -- already cached`
     );
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Lazy-Loading-Pattern
     let dataGridColumnsForDayOfYear =
       this._serviceRegister.cacheService.restoreDataGridColumnsForDayOfYearForCollapsedState(
-        calenderWeeksCollapsedStates
+        calenderWeeksCollapsedState
       );
     if (!dataGridColumnsForDayOfYear) {
       dataGridColumnsForDayOfYear =
         this._generateDayOfYearToGridIntervalMapping();
 
       this._serviceRegister.cacheService.saveDataGridColumnsForDayOfYearForCollapsedState(
-        calenderWeeksCollapsedStates,
+        calenderWeeksCollapsedState,
         dataGridColumnsForDayOfYear
       );
     }
@@ -163,14 +185,14 @@ class TableStructureService extends Service {
 
     // Nach Vorgabe enthält jede Woche (auch die am Rand) exakt sieben Tage.
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     const stepCollapsed = this.BASE_COLUMN_WIDTH; // eine logische Spalte (so breit wie ein Tag wenn nicht kollabiert) ist für eine kollabierte KW vorgesehen
     const stepNonCollapsed = 7 * stepCollapsed; // sieben Tage sind darzustellen wenn die KW nicht kollabiert ist
 
     let k = 0;
-    calenderWeeksCollapsedStates.forEach((flag) => {
+    calenderWeeksCollapsedState.forEach((flag) => {
       flag ? (k += stepCollapsed) : (k += stepNonCollapsed);
     });
 
@@ -182,19 +204,19 @@ class TableStructureService extends Service {
       `TableStructureService::getNumberOfLogicalDataColumns() -- already cached`
     );
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Lazy-Loading-Pattern
     let numberOfLogicalDataColumns =
       this._serviceRegister.cacheService.restoreNumberOfLogicalDataColumnsForCollapsedState(
-        calenderWeeksCollapsedStates
+        calenderWeeksCollapsedState
       );
     if (!Number.isFinite(numberOfLogicalDataColumns)) {
       numberOfLogicalDataColumns = this._calculateNumberOfLogicalDataColumns();
 
       this._serviceRegister.cacheService.saveNumberOfLogicalDataColumnsForCollapsedState(
-        calenderWeeksCollapsedStates,
+        calenderWeeksCollapsedState,
         numberOfLogicalDataColumns
       );
     }
@@ -255,7 +277,7 @@ class TableStructureService extends Service {
     const dayOfYearToGridIntervalMapping =
       this.getDayOfYearToGridIntervalMapping();
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     weeksArray.forEach((dayStructureIndices, weekNumber) => {
@@ -275,7 +297,7 @@ class TableStructureService extends Service {
         this.HEADER_COLUMNS +
         dayOfYearToGridIntervalMapping[indexOfLastDayCurrentWeek][1];
 
-      if (calenderWeeksCollapsedStates[weekNumber]) {
+      if (calenderWeeksCollapsedState[weekNumber]) {
         endColumn = startColumn + this.BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC_BASE_COLUMN_WIDTH GridColumns zu verwenden
       }
 
@@ -301,7 +323,7 @@ class TableStructureService extends Service {
     const dayOfYearToGridIntervalMapping =
       this.getDayOfYearToGridIntervalMapping();
 
-    const calenderWeeksCollapsedStates =
+    const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Unter einer kollabierten KW soll nur ein Feld (in der breite eines Tages im ausgeklappten Zustand)
@@ -313,7 +335,7 @@ class TableStructureService extends Service {
     const filteredDaysInWeekAsIndices =
       entityArrays.daysInWeekAsIndicesOfDayStructure.map(
         (daysInWeekAsIdx, idx) =>
-          calenderWeeksCollapsedStates[idx]
+          calenderWeeksCollapsedState[idx]
             ? [daysInWeekAsIdx[0], daysInWeekAsIdx.at(-1)]
             : daysInWeekAsIdx
       );
@@ -379,8 +401,10 @@ class TableStructureService extends Service {
   }
 
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der (noch einzigen) Daten Kopfspalte verwendet
-  getDataHeaderColumnObjects() {
-    console.log(`TableStructureService::getDataHeaderColumnObjects()`);
+  _createDataHeaderColumnObjects() {
+    console.log(
+      `TableStructureService::_createDataHeaderColumnObjects() -- already cached`
+    );
 
     const rows = [];
 
@@ -398,6 +422,30 @@ class TableStructureService extends Service {
       });
     });
     return rows;
+  }
+
+  getDataHeaderColumnObjects() {
+    console.log(
+      `TableStructureService::getDataHeaderColumnObjects() -- already cached`
+    );
+
+    const calenderWeeksCollapsedState =
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
+
+    // Lazy-Loading-Pattern
+    let dataHeaderColumnObjects =
+      this._serviceRegister.cacheService.restoreDataHeaderColumnObjectsForCollapsedState(
+        calenderWeeksCollapsedState
+      );
+    if (!dataHeaderColumnObjects) {
+      dataHeaderColumnObjects = this._createDataHeaderColumnObjects();
+
+      this._serviceRegister.cacheService.saveDataHeaderColumnObjectsForCollapsedState(
+        calenderWeeksCollapsedState,
+        dataHeaderColumnObjects
+      );
+    }
+    return dataHeaderColumnObjects;
   }
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Blöcke verwendet
@@ -452,7 +500,7 @@ class TableStructureService extends Service {
       this.getDayOfYearToGridIntervalMapping();
 
     // einen GridAssistant für die aktuelle "Collapsed-Situation" erzeugen
-    const gridAssistant = this._createGridAssistant();
+    const gridAssistant = this.getGridAssistant();
 
     // Blockdaten-Intervalle, so nicht leer, mappen von dayOfYearIndices auf GridColumns:
     let dataColumnIntervals = [];

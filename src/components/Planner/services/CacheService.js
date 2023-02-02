@@ -9,6 +9,8 @@ class CacheService extends Service {
     entityArraysForYearCache: new Map(),
     dataGridColumnsForDayOfYearForCollapsedStateCache: new Map(),
     numberOfLogicalDataColumnsForCollapsedStateCache: new Map(),
+    gridAssistantForCollapsedStateCache: new Map(),
+    dataHeaderColumnObjectsForForCollapsedStateCache: new Map(),
   };
 
   _init() {}
@@ -85,6 +87,50 @@ class CacheService extends Service {
     )
       return null;
     return this._caches.numberOfLogicalDataColumnsForCollapsedStateCache.get(
+      hash
+    );
+  }
+  //
+
+  // GridAssistant
+  saveGridAssistantForCollapsedState(calenderWeeksCollapsedState, cacheValue) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    this._caches.gridAssistantForCollapsedStateCache.set(hash, cacheValue);
+  }
+  restoreGridAssistantForCollapsedState(calenderWeeksCollapsedState) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    if (!this._caches.gridAssistantForCollapsedStateCache.has(hash))
+      return null;
+    return this._caches.gridAssistantForCollapsedStateCache.get(hash);
+  }
+  //
+
+  // DataHeaderColumnObjects
+  saveDataHeaderColumnObjectsForCollapsedState(
+    calenderWeeksCollapsedState,
+    cacheValue
+  ) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    this._caches.dataHeaderColumnObjectsForForCollapsedStateCache.set(
+      hash,
+      cacheValue
+    );
+  }
+  restoreDataHeaderColumnObjectsForCollapsedState(calenderWeeksCollapsedState) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    if (
+      !this._caches.dataHeaderColumnObjectsForForCollapsedStateCache.has(hash)
+    )
+      return null;
+    return this._caches.dataHeaderColumnObjectsForForCollapsedStateCache.get(
       hash
     );
   }
