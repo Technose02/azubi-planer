@@ -1,145 +1,137 @@
 <template>
-  <!-- dirty hack for forced rerender -->
-  <template
-    v-if="
-      this.serviceManager.tableStateService
-        ._FORCE_RERENDER_HANDLE_FOR_PLANNER_COMPONENT
-    "
+  <div
+    @click="onClick"
+    class="planner-container-grid"
+    :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
+    _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
   >
     <div
-      @click="onClick"
-      class="planner-container-grid"
-      :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
-      _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
+      class="planner-cell planner-header-row planner-header-row-month"
+      v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects()"
+      :class="[
+        Number.isFinite(m.month_number)
+          ? `planner-header-row-month--${m.month_number}`
+          : '',
+      ]"
+      :style="m.style_"
     >
-      <div
-        class="planner-cell planner-header-row planner-header-row-month"
-        v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects()"
-        :class="[
-          Number.isFinite(m.month_number)
-            ? `planner-header-row-month--${m.month_number}`
-            : '',
-        ]"
-        :style="m.style_"
-      >
-        {{ m.name }}
-      </div>
-      <div
-        :class="[
-          'planner-cell',
-          'planner-header-row',
-          'planner-header-row-week',
-          Number.isFinite(w.week_number)
-            ? `planner-header-row-week--${w.week_number}`
-            : '',
-        ]"
-        v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects()"
-        :style="w.style_"
-      >
-        {{ w.name }}
-      </div>
-      <div
-        v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects()"
-        :class="[
-          'planner-cell',
-          'planner-header-row',
-          'planner-header-row-day',
-          Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
-          Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
-          Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
-          Number.isFinite(d.day_of_week) ? `day-week--${d.day_of_week}` : '',
-          Number.isFinite(d.day_of_month) ? `day-month--${d.day_of_month}` : '',
-          Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
-          d.not_this_year ? `not-this-year` : '',
-          d.collapsed ? 'collapsed' : '',
-        ]"
-        :style="d.style_"
-      >
-        <div style="display: flex; flex-direction: column">
-          <template v-if="d.display_text">
-            <span class="planner-header-day-week">{{ d.day_of_week_str }}</span>
-            <span class="planner-header-day-month">{{ d.day_of_month }}</span>
-          </template>
-        </div>
-      </div>
-      <div
-        class="planner-cell planner-header-corner"
-        style="grid-column: 1; grid-row: 1 / 4"
-      ></div>
-      <div
-        :class="[
-          'planner-cell',
-          'planner-header-column',
-          row.key ? `planner-header-column--${row.key}` : '',
-        ]"
-        v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
-        :style="`${row.style_}`"
-      >
-        {{ row.title }}
-      </div>
-
-      <!-- Rendern der Blöcke -->
-      <template style="display: none"><slot></slot></template>
-      <!-- Über den Slot werden lediglich Blöcke 'logisch' in den Planner geladen, nicht gerendert -->
-      <!-- Rendern der Block-Daten erfolgt nur direkt aus dem Model heraus in diesem div: -->
-      <div
-        v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
-        :class="[
-          'planner-cell',
-          'data-cell',
-          'planner-block',
-          b.block_name ? `planner-block--${b.block_name}` : '',
-          b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
-        ]"
-        :style="b.style_"
-      >
-        {{ b.block_name }}
-      </div>
-
-      <!-- Rendern der freien "Data-Cells" -->
-      <template
-        v-for="(
-          row, rowIdx
-        ) in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
-      >
-        <template
-          v-for="d in this.serviceManager.tableStructureService.getNonBlockedDayFillingObjectsForRowByIndex(
-            rowIdx
-          )"
-        >
-          <div
-            v-if="d.is_fill_day"
-            :class="[
-              'planner-cell',
-              'data-cell',
-              'fill-day',
-              Number.isFinite(d.day_of_year)
-                ? `day-of-year--${d.day_of_year}`
-                : '',
-              Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
-              Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
-              row.key ? `data--${row.key}` : '',
-            ]"
-            :style="`${row.row_style} ${d.style_}`"
-          ></div>
-          <div
-            v-else
-            :class="[
-              'planner-cell',
-              'data-cell',
-              row.key ? `data-cell--${row.key}` : '',
-              Number.isFinite(d.day_of_year)
-                ? `day-of-year--${d.day_of_year}`
-                : '',
-              Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
-              Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
-            ]"
-            :style="`${row.row_style} ${d.style_}`"
-          ></div>
-        </template>
-      </template>
+      {{ m.name }}
     </div>
-  </template>
+    <div
+      :class="[
+        'planner-cell',
+        'planner-header-row',
+        'planner-header-row-week',
+        Number.isFinite(w.week_number)
+          ? `planner-header-row-week--${w.week_number}`
+          : '',
+      ]"
+      v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects()"
+      :style="w.style_"
+    >
+      {{ w.name }}
+    </div>
+    <div
+      v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects()"
+      :class="[
+        'planner-cell',
+        'planner-header-row',
+        'planner-header-row-day',
+        Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
+        Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
+        Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+        Number.isFinite(d.day_of_week) ? `day-week--${d.day_of_week}` : '',
+        Number.isFinite(d.day_of_month) ? `day-month--${d.day_of_month}` : '',
+        Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
+        d.not_this_year ? `not-this-year` : '',
+        d.collapsed ? 'collapsed' : '',
+      ]"
+      :style="d.style_"
+    >
+      <div style="display: flex; flex-direction: column">
+        <template v-if="d.display_text">
+          <span class="planner-header-day-week">{{ d.day_of_week_str }}</span>
+          <span class="planner-header-day-month">{{ d.day_of_month }}</span>
+        </template>
+      </div>
+    </div>
+    <div
+      class="planner-cell planner-header-corner"
+      style="grid-column: 1; grid-row: 1 / 4"
+    ></div>
+    <div
+      :class="[
+        'planner-cell',
+        'planner-header-column',
+        row.key ? `planner-header-column--${row.key}` : '',
+      ]"
+      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+      :style="`${row.style_}`"
+    >
+      {{ row.title }}
+    </div>
+
+    <!-- Rendern der Blöcke -->
+    <template style="display: none"><slot></slot></template>
+    <!-- Über den Slot werden lediglich Blöcke 'logisch' in den Planner geladen, nicht gerendert -->
+    <!-- Rendern der Block-Daten erfolgt nur direkt aus dem Model heraus in diesem div: -->
+    <div
+      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
+      :class="[
+        'planner-cell',
+        'data-cell',
+        'planner-block',
+        b.block_name ? `planner-block--${b.block_name}` : '',
+        b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
+      ]"
+      :style="b.style_"
+    >
+      {{ b.block_name }}
+    </div>
+
+    <!-- Rendern der freien "Data-Cells" -->
+    <template
+      v-for="(
+        row, rowIdx
+      ) in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+    >
+      <template
+        v-for="d in this.serviceManager.tableStructureService.getNonBlockedDayFillingObjectsForRowByIndex(
+          rowIdx
+        )"
+      >
+        <div
+          v-if="d.is_fill_day"
+          :class="[
+            'planner-cell',
+            'data-cell',
+            'fill-day',
+            Number.isFinite(d.day_of_year)
+              ? `day-of-year--${d.day_of_year}`
+              : '',
+            Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+            Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
+            row.key ? `data--${row.key}` : '',
+          ]"
+          :style="`${row.row_style} ${d.style_}`"
+        ></div>
+        <div
+          v-else
+          :class="[
+            'planner-cell',
+            'data-cell',
+            row.key ? `data-cell--${row.key}` : '',
+            Number.isFinite(d.day_of_year)
+              ? `day-of-year--${d.day_of_year}`
+              : '',
+            Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
+            Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
+          ]"
+          :style="`${row.row_style} ${d.style_}`"
+        ></div>
+      </template>
+    </template>
+  </div>
 </template>
 <script>
 import { store } from "./store.js";
