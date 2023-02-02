@@ -87,7 +87,7 @@
           'data-cell',
           'planner-block',
           b.block_name ? `planner-block--${b.block_name}` : '',
-          b.row_key ? `planner-row--${b.row_key}` : '',
+          b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
         ]"
         :style="b.style_"
       >
