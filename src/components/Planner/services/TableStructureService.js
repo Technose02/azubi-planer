@@ -356,9 +356,9 @@ class TableStructureService extends Service {
         row_key_list: block.row_key_list,
         style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
           block.end_data_row_index + this.HEADER_ROWS + 1
-        }; grid-column: ${startColumn + this.HEADER_COLUMNS} / ${
-          endColumn + this.HEADER_COLUMNS + 1
-        }; background-color: ${block.renderData.style.color};`,
+        }; grid-column: ${startColumn} / ${endColumn + 1}; background-color: ${
+          block.renderData.style.color
+        };`,
       });
     });
     return blockDataRenderObjects;

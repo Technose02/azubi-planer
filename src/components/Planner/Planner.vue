@@ -8,7 +8,8 @@
     <div
       @click="onClick"
       class="planner-container-grid"
-      :style="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
+      :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
+      _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
     >
       <div
         class="planner-cell planner-header-row planner-header-row-month"
@@ -180,19 +181,14 @@ export default {
         console.error("error: unable to determine the week to collapse/expand");
         return;
       }
-      if (!this.store.model.getCollapsedState(kwIdx)) {
-        this.store.model.setCollapsedState(kwIdx, true);
-        this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
-          kwIdx,
-          true
-        );
+
+      if (
+        this.serviceManager.tableStateService.toggleCalenderWeekCollapseState(
+          kwIdx
+        )
+      ) {
         e.target.classList.add("collapsed");
       } else {
-        this.store.model.setCollapsedState(kwIdx, false);
-        this.serviceManager.tableStateService.setCalenderWeeksCollapsedState(
-          kwIdx,
-          false
-        );
         e.target.classList.remove("collapsed");
       }
     },
@@ -339,6 +335,7 @@ export default {
 .planner-header-row-day {
   grid-row: 3;
   background-color: #f7cac9;
+  font-size: 1vw;
 }
 
 .planner-header-row-day.not-this-year {
