@@ -16,10 +16,10 @@ export default {
     name: String,
   },
   beforeCreate() {
-    console.log("PlannerEntry -- beforeCreate");
+    //console.log("PlannerEntry -- beforeCreate");
   },
   created() {
-    console.log("PlannerEntry -- created");
+    //console.log("PlannerEntry -- created");
     this.shared.serviceManager.tableDataService.importBlockData(
       this.name,
       this.startDate,
@@ -34,22 +34,22 @@ export default {
     );
   },
   beforeMount() {
-    console.log("PlannerEntry -- beforeMount");
+    //console.log("PlannerEntry -- beforeMount");
   },
   mounted() {
-    console.log("PlannerEntry -- mounted");
+    //console.log("PlannerEntry -- mounted");
   },
   beforeUpdate() {
-    console.log("PlannerEntry -- beforeUpdate");
+    //console.log("PlannerEntry -- beforeUpdate");
   },
   updated() {
-    console.log("PlannerEntry -- updated");
+    //console.log("PlannerEntry -- updated");
   },
   beforeUnmount() {
-    console.log("PlannerEntry -- beforeUnmount");
+    //console.log("PlannerEntry -- beforeUnmount");
   },
   unmounted() {
-    console.log("PlannerEntry -- unmounted");
+    //console.log("PlannerEntry -- unmounted");
   },
 };
 </script>

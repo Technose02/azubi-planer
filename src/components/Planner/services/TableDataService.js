@@ -37,7 +37,6 @@ class TableDataService extends Service {
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
   // Das individuelle Styling sowie Infos für die Generierung der classList-Einträge erfolgt über die renderData-Struktur.
   importBlockData(name, startDate, endDate, renderData, rowKeys) {
-    //console.log("TableDataService::importBlockData called");
     // Zunächst sind die Dates auf den jeweiligen dayOfYear-Index zu mappen
     const entityArrays =
       this._serviceRegister.tableStructureService.getEntityArrays();
@@ -73,8 +72,6 @@ class TableDataService extends Service {
   // Erstellt aus den Informationen über die existierenden Blöcke und die Zuordnungen der Spalten zu eben diesen
   // die darzustellenden Blöcke
   generateBlockDataRenderObjects() {
-    //    console.log("TableDataService::generateBlockDataRenderObjects called");
-
     const blockDataRenderObjects = [];
 
     for (const [blockId, assignedRows] of this._assignedBlocks) {
