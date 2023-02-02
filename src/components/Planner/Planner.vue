@@ -188,7 +188,6 @@ export default {
   },
   created() {
     console.log("Planner -- created");
-
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows);
     this.shared.serviceManager = this.serviceManager;

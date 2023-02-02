@@ -8,6 +8,7 @@ class CacheService extends Service {
   _caches = {
     entityArraysForYearCache: new Map(),
     dataGridColumnsForDayOfYearForCollapsedStateCache: new Map(),
+    numberOfLogicalDataColumnsForCollapsedStateCache: new Map(),
   };
 
   _init() {}
@@ -29,25 +30,26 @@ class CacheService extends Service {
     if (!this._caches.entityArraysForYearCache.has(hash)) return null; // es sollte ein falsy Wert sein, damit es sich leicht prüfen lässt
     return this._caches.entityArraysForYearCache.get(hash);
   }
+  //
 
   // DataGridColumnsForDayOfYearForCollapsedState
-  saveDataGridColumnsForDayOfYearForCollapsedStates(
-    calenderWeeksCollapsedStates,
+  saveDataGridColumnsForDayOfYearForCollapsedState(
+    calenderWeeksCollapsedState,
     cacheValue
   ) {
     const hash = this._hashKeyGeneratorFromArrayOfBooleans(
-      calenderWeeksCollapsedStates
+      calenderWeeksCollapsedState
     );
     this._caches.dataGridColumnsForDayOfYearForCollapsedStateCache.set(
       hash,
       cacheValue
     );
   }
-  restoreDataGridColumnsForDayOfYearForCollapsedStates(
-    calenderWeeksCollapsedStates
+  restoreDataGridColumnsForDayOfYearForCollapsedState(
+    calenderWeeksCollapsedState
   ) {
     const hash = this._hashKeyGeneratorFromArrayOfBooleans(
-      calenderWeeksCollapsedStates
+      calenderWeeksCollapsedState
     );
     if (
       !this._caches.dataGridColumnsForDayOfYearForCollapsedStateCache.has(hash)
@@ -57,6 +59,36 @@ class CacheService extends Service {
       hash
     );
   }
+  //
+
+  //NumberOfLogicalDataColumns
+  saveNumberOfLogicalDataColumnsForCollapsedState(
+    calenderWeeksCollapsedState,
+    cacheValue
+  ) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    this._caches.numberOfLogicalDataColumnsForCollapsedStateCache.set(
+      hash,
+      cacheValue
+    );
+  }
+  restoreNumberOfLogicalDataColumnsForCollapsedState(
+    calenderWeeksCollapsedState
+  ) {
+    const hash = this._hashKeyGeneratorFromArrayOfBooleans(
+      calenderWeeksCollapsedState
+    );
+    if (
+      !this._caches.numberOfLogicalDataColumnsForCollapsedStateCache.has(hash)
+    )
+      return null;
+    return this._caches.numberOfLogicalDataColumnsForCollapsedStateCache.get(
+      hash
+    );
+  }
+  //
 }
 
 const createCacheService = function () {

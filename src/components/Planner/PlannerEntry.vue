@@ -20,13 +20,6 @@ export default {
   },
   created() {
     console.log("PlannerEntry -- created");
-  },
-  beforeMount() {
-    console.log("PlannerEntry -- beforeMount");
-  },
-  mounted() {
-    console.log("PlannerEntry -- mounted");
-
     this.shared.serviceManager.tableDataService.importBlockData(
       this.name,
       this.startDate,
@@ -39,6 +32,12 @@ export default {
       },
       this.rowKeys
     );
+  },
+  beforeMount() {
+    console.log("PlannerEntry -- beforeMount");
+  },
+  mounted() {
+    console.log("PlannerEntry -- mounted");
   },
   beforeUpdate() {
     console.log("PlannerEntry -- beforeUpdate");

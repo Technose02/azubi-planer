@@ -20,15 +20,20 @@ class TableStructureService extends Service {
   _year;
 
   constructor(year) {
+    console.log(`TableStructureService::constructor`);
     super();
     this._year = year;
   }
 
   _init() {
+    console.log(`TableStructureService::_init()`);
+
     this.initializeTableStructure();
   }
 
   _createGridAssistant() {
+    console.log(`TableStructureService::_createGridAssistant()`);
+
     // - Daten-Spalten beginnen mit Spalte 'this.HEADER_COLUMNS'
     // -  da rechts kein offset vorgesehen ist ist die letzte Datenspalte die Summe
     //      'this.HEADER_COLUMNS' + 'this.getNumberOfLogicalDataColumns()'
@@ -44,10 +49,14 @@ class TableStructureService extends Service {
   }
 
   initializeTableStructure() {
+    console.log(`TableStructureService::initializeTableStructure()`);
+
     this.getEntityArrays(); // caching, ansonsten würde lazy generiert
   }
 
   getEntityArrays() {
+    console.log(`TableStructureService::getEntityArrays() -- already cached`);
+
     // Lazy-Loading-Pattern
     let entityArrays =
       this._serviceRegister.cacheService.restoreEntityArraysForYear(this._year);
@@ -69,6 +78,10 @@ class TableStructureService extends Service {
   // es lohnt sich daher, diese einmal für alle Tage zu bestimmen und als Referenz in einem Cache abzulegen - auch wenn dieser recht
   // oft erneuert werden muss (bei jedem Ein- oder Ausklappen einer KW-Spalte)
   _generateDayOfYearToGridIntervalMapping() {
+    console.log(
+      `TableStructureService::_generateDayOfYearToGridIntervalMapping()`
+    );
+
     const dataGridColumnsForDayOfYear = [];
 
     const dayOfYearIndicesInCalenderWeeks =
@@ -115,19 +128,23 @@ class TableStructureService extends Service {
   }
 
   getDayOfYearToGridIntervalMapping() {
+    console.log(
+      `TableStructureService::getDayOfYearToGridIntervalMapping() -- already cached`
+    );
+
     const calenderWeeksCollapsedStates =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     // Lazy-Loading-Pattern
     let dataGridColumnsForDayOfYear =
-      this._serviceRegister.cacheService.restoreDataGridColumnsForDayOfYearForCollapsedStates(
+      this._serviceRegister.cacheService.restoreDataGridColumnsForDayOfYearForCollapsedState(
         calenderWeeksCollapsedStates
       );
     if (!dataGridColumnsForDayOfYear) {
       dataGridColumnsForDayOfYear =
         this._generateDayOfYearToGridIntervalMapping();
 
-      this._serviceRegister.cacheService.saveDataGridColumnsForDayOfYearForCollapsedStates(
+      this._serviceRegister.cacheService.saveDataGridColumnsForDayOfYearForCollapsedState(
         calenderWeeksCollapsedStates,
         dataGridColumnsForDayOfYear
       );
@@ -136,7 +153,11 @@ class TableStructureService extends Service {
   }
 
   //// Methods for Render-Support
-  getNumberOfLogicalDataColumns() {
+  _calculateNumberOfLogicalDataColumns() {
+    console.log(
+      `TableStructureService::_calculateNumberOfLogicalDataColumns()`
+    );
+
     // gesucht ist hier die Anzahl der logischen Spalten - damit ist entweder eine kollabierte Kalenderwoche oder ein Tag
     // einer nicht kollabierten Kalenderwoche gemeint.
 
@@ -156,8 +177,34 @@ class TableStructureService extends Service {
     return k;
   }
 
+  getNumberOfLogicalDataColumns() {
+    console.log(
+      `TableStructureService::getNumberOfLogicalDataColumns() -- already cached`
+    );
+
+    const calenderWeeksCollapsedStates =
+      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
+
+    // Lazy-Loading-Pattern
+    let numberOfLogicalDataColumns =
+      this._serviceRegister.cacheService.restoreNumberOfLogicalDataColumnsForCollapsedState(
+        calenderWeeksCollapsedStates
+      );
+    if (!Number.isFinite(numberOfLogicalDataColumns)) {
+      numberOfLogicalDataColumns = this._calculateNumberOfLogicalDataColumns();
+
+      this._serviceRegister.cacheService.saveNumberOfLogicalDataColumnsForCollapsedState(
+        calenderWeeksCollapsedStates,
+        numberOfLogicalDataColumns
+      );
+    }
+    return numberOfLogicalDataColumns;
+  }
+
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Monats-Felder der obersten Kopfzeile verwendet
   getMonthHeaderRowObjects() {
+    console.log(`TableStructureService::getMonthHeaderRowObjects()`);
+
     const months = [];
 
     const monthNames = this._serviceRegister.calenderService.MONTH_NAMES;
@@ -199,6 +246,8 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Kalenderwochen-Felder der zweiten Kopfzeile verwendet
   getWeekHeaderRowObjects() {
+    console.log(`TableStructureService::getWeekHeaderRowObjects()`);
+
     const weeks = [];
 
     const weeksArray = this.getEntityArrays().daysInWeekAsIndicesOfDayStructure;
@@ -241,6 +290,8 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der Tag-Felder der dritten Kopfzeile verwendet
   getDayHeaderRowObjects() {
+    console.log(`TableStructureService::getDayHeaderRowObjects()`);
+
     const days = [];
 
     const weekdayNames = this._serviceRegister.calenderService.WEEKDAY_NAMES;
@@ -329,6 +380,8 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der (noch einzigen) Daten Kopfspalte verwendet
   getDataHeaderColumnObjects() {
+    console.log(`TableStructureService::getDataHeaderColumnObjects()`);
+
     const rows = [];
 
     const registeredRowKeys =
@@ -349,6 +402,8 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Blöcke verwendet
   getBlockDataRenderObjects() {
+    console.log(`TableStructureService::getBlockDataRenderObjects()`);
+
     const blockDataRenderObjects = [];
 
     const dayOfYearToGridIntervalMapping =
@@ -383,6 +438,9 @@ class TableStructureService extends Service {
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Daten-Zellen verwendet, die frei sind
   getNonBlockedDayFillingObjectsForRowByIndex(rowIndex) {
+    console.log(
+      `TableStructureService::getNonBlockedDayFillingObjectsForRowByIndex(${rowIndex})`
+    );
     const nonBlockedDayFillingObjects = [];
 
     const blockIntervals =
