@@ -1,6 +1,9 @@
 <template>
   <div
-    @click="onClick"
+    @click="(e) => this.onClick(e, 1)"
+    @contextmenu="(e) => this.onClick(e, 2)"
+    @mousemove="this.onMouseMove"
+    ref="plannerContainerGrid"
     class="planner-container-grid"
     :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
     _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
@@ -105,7 +108,7 @@
           :class="[
             'planner-cell',
             'data-cell',
-            'fill-day',
+            'free-day',
             Number.isFinite(d.day_of_year)
               ? `day-of-year--${d.day_of_year}`
               : '',
@@ -131,6 +134,10 @@
         ></div>
       </template>
     </template>
+    <div
+      ref="createBlockVisualizer"
+      class="create-block-visualizer hidden"
+    ></div>
   </div>
 </template>
 <script>
@@ -143,6 +150,10 @@ export default {
       serviceManager: [],
       shared: store,
       rowTitles: [],
+
+      // interaction-states: 0 - nothing, 1 - creating-data
+      interaction_state: 0,
+      interaction_startCell: {},
     };
   },
   name: "planner",
@@ -151,16 +162,28 @@ export default {
     year: Number,
   },
   methods: {
-    onClick(e) {
-      e.preventDefault();
+    onClick(e, button) {
       // Wählen des zuständigen Eventhandlers
       const target_classList = e.target.classList;
       if (target_classList.contains("planner-header-row-week")) {
-        this.onClickKWHeaderField(e);
+        this.onClickKWHeaderField(e, button);
+      } else if (target_classList.contains("free-day")) {
+        this.onClickFreeDay(e, button);
+      } else if (target_classList.contains("create-block-visualizer")) {
+        this.onClickBlockVisualizer(e, button);
       }
       e.stopPropagation();
     },
-    onClickKWHeaderField(e) {
+    onMouseMove(e) {
+      if (e.target.classList.contains("free-day")) {
+        this.onMoveOverFreeDay(e);
+      } else if (e.target.classList.contains("create-block-visualizer")) {
+        this.onMoveOverBlockVisualizer(e);
+      }
+      e.stopPropagation();
+    },
+    onClickKWHeaderField(e, button) {
+      e.preventDefault();
       // bestimme den Kalenderwochen-Index des angeklickten KW-HeaderField über classList-Eintrag 'planner-header-row-week--??'
       const kwIdx = Number(
         Array.from(e.target.classList)
@@ -180,6 +203,89 @@ export default {
         e.target.classList.add("collapsed");
       } else {
         e.target.classList.remove("collapsed");
+      }
+    },
+    onClickFreeDay(e, button) {
+      const visualizer = this.$refs.createBlockVisualizer;
+      const container = this.$refs.plannerContainerGrid;
+
+      if (this.interaction_state === 0) {
+        if (button === 1) {
+          e.preventDefault();
+          this.interaction_state = 1;
+          this.interaction_startCell = e.target;
+          visualizer.classList.remove("hidden");
+
+          const containerRect = container.getBoundingClientRect(); // das bezugselement
+          const startCellRect =
+            this.interaction_startCell.getBoundingClientRect();
+
+          visualizer.style.top = `${startCellRect.top - containerRect.top}px`;
+          visualizer.style.left = `${
+            startCellRect.left - containerRect.left
+          }px`;
+          visualizer.style.width = `${startCellRect.width}px`;
+          visualizer.style.height = `${startCellRect.height}px`;
+        }
+      } else if (this.interaction_state === 1) {
+        if (button === 2) {
+          e.preventDefault();
+          // creating-data-state verlassen
+          visualizer.classList.add("hidden");
+          this.interaction_state = 0;
+        }
+      }
+    },
+    onSelectingOver(target) {
+      const visualizer = this.$refs.createBlockVisualizer;
+
+      const containerRect =
+        this.$refs.plannerContainerGrid.getBoundingClientRect(); // das Bezugselement
+      const startCellRect = this.interaction_startCell.getBoundingClientRect(); // das Startelement
+      const currentCellRect = target.getBoundingClientRect(); // das aktuell berührte Element
+
+      if (currentCellRect.left >= startCellRect.left) {
+        visualizer.style.left = `${startCellRect.left - containerRect.left}px`;
+        visualizer.style.width = `${
+          currentCellRect.right - startCellRect.left
+        }px`;
+      } else {
+        visualizer.style.left = `${
+          currentCellRect.left - containerRect.left
+        }px`;
+        visualizer.style.width = `${
+          startCellRect.left - currentCellRect.left
+        }px`;
+      }
+      if (currentCellRect.top >= startCellRect.top) {
+        visualizer.style.top = `${startCellRect.top - containerRect.top}px`;
+        visualizer.style.height = `${
+          currentCellRect.bottom - startCellRect.top
+        }px`;
+      } else {
+        visualizer.style.top = `${currentCellRect.top - containerRect.top}px`;
+        visualizer.style.height = `${
+          startCellRect.top - currentCellRect.top
+        }px`;
+      }
+    },
+    onMoveOverFreeDay(e) {
+      if (this.interaction_state !== 1) return;
+
+      this.onSelectingOver(e.target);
+    },
+    onMoveOverBlockVisualizer(e) {
+      this.$refs.createBlockVisualizer.classList.add("hidden");
+      const target = document.elementFromPoint(e.x, e.y);
+      this.$refs.createBlockVisualizer.classList.remove("hidden");
+      this.onSelectingOver(target);
+    },
+    onClickBlockVisualizer(e, button) {
+      e.preventDefault();
+      if (button === 2) {
+        // creating-data-state verlassen
+        this.$refs.createBlockVisualizer.classList.add("hidden");
+        this.interaction_state = 0;
       }
     },
   },
@@ -219,6 +325,7 @@ export default {
   font-size: 1.6rem;
   cursor: default;
   user-select: none;
+  position: relative;
 }
 
 .planner-header-row-month--1 {
@@ -286,7 +393,7 @@ export default {
   min-width: 2.93rem;
 }
 
-.fill-day {
+.free-day {
   min-width: 0;
 }
 
@@ -355,5 +462,20 @@ export default {
   justify-content: center;
   border-bottom: 0.1rem solid black;
   border-right: 0.1rem solid black;
+}
+
+.create-block-visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 0.1rem solid black;
+  border-right: 0.1rem solid black;
+  background-color: rgba(250, 194, 245, 0.534);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10rem;
+  height: 5rem;
 }
 </style>
