@@ -183,10 +183,33 @@ export default {
       }
     },
   },
+  beforeCreate() {
+    console.log("Planner -- beforeCreate");
+  },
   created() {
+    console.log("Planner -- created");
+
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows);
     this.shared.serviceManager = this.serviceManager;
+  },
+  beforeMount() {
+    console.log("Planner -- beforeMount");
+  },
+  mounted() {
+    console.log("Planner -- mounted");
+  },
+  beforeUpdate() {
+    console.log("Planner -- beforeUpdate");
+  },
+  updated() {
+    console.log("Planner -- updated");
+  },
+  beforeUnmount() {
+    console.log("Planner -- beforeUnmount");
+  },
+  unmounted() {
+    console.log("Planner -- unmounted");
   },
 };
 </script>
