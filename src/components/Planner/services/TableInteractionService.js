@@ -48,7 +48,7 @@ class Rect {
   }
 }
 
-class InteractionService extends Service {
+class TableInteractionService extends Service {
   // Interne Konstanten
   _MOUSE_BUTTON_LEFT = 0;
   _MOUSE_BUTTON_RIGHT = 1;
@@ -306,8 +306,8 @@ class InteractionService extends Service {
   }
 }
 
-const createInteractionService = function () {
-  return new InteractionService();
+const createTableInteractionService = function () {
+  return new TableInteractionService();
 };
 
-export default createInteractionService;
+export default createTableInteractionService;

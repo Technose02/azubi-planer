@@ -2,7 +2,7 @@
   <div
     @click="
       (e) =>
-        this.serviceManager.interactionService.onPlannerContainerClick(
+        this.serviceManager.tableInteractionService.onPlannerContainerClick(
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
@@ -11,7 +11,7 @@
     "
     @contextmenu="
       (e) =>
-        this.serviceManager.interactionService.onPlannerContainerContextMenu(
+        this.serviceManager.tableInteractionService.onPlannerContainerContextMenu(
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
@@ -20,7 +20,7 @@
     "
     @mousemove="
       (e) =>
-        this.serviceManager.interactionService.onPlannerContainerMouseMove(
+        this.serviceManager.tableInteractionService.onPlannerContainerMouseMove(
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
