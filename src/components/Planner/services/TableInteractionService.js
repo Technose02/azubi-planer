@@ -255,6 +255,8 @@ class TableInteractionService extends Service {
   }
 
   onDataCellRangeMove(event, container, visualizer, headerCornerRect) {
+    console.log(this.getCellInfo(event));
+
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
       const [headerDayCell, headerRowCell] = this._determineRelatedHeaderCells(
         event,
@@ -303,6 +305,47 @@ class TableInteractionService extends Service {
         }px`;
       }
     }
+  }
+  ///////////////// Get CellInfo from event (and event.target)
+  getCellInfo(event) {
+    // Daten-Zelle ermitteln:
+    const { x, y } = event;
+    const { left, right, top, bottom } = event.target.getBoundingClientRect();
+
+    const cols = event.target.style.gridColumn
+      .split("/")
+      .map((s) => Number.parseInt(s.trim()));
+    cols[1] = cols[1] ?? cols[0] + 1;
+
+    const rows = event.target.style.gridRow
+      .split("/")
+      .map((s) => Number.parseInt(s.trim()));
+    rows[1] = rows[1] ? rows[1] : rows[0] + 1;
+
+    const colOffset =
+      this._serviceRegister.tableStructureService.HEADER_COLUMNS;
+    const baseColumnWidth =
+      this._serviceRegister.tableStructureService.BASE_COLUMN_WIDTH;
+
+    // Ermittle die Grid-Column der Mausposition:
+    const column = Math.round(
+      cols[0] + ((x - left) / (right - left)) * (cols[1] - cols[0])
+    );
+
+    // Ermittle die Grid-Row der Mausposition:
+    const row = Math.round(
+      rows[0] + ((y - top) / (bottom - top)) * (rows[1] - rows[0])
+    );
+
+    return `Zeile: ${row}, Spalte: ${column}(${
+      colOffset +
+      1 +
+      (column -
+        (colOffset + 1) -
+        ((column - (colOffset + 1)) % baseColumnWidth)) /
+        baseColumnWidth
+    })`;
+    ////
   }
 }
 
