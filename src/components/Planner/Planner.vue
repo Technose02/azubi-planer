@@ -1,9 +1,30 @@
 <template>
   <div
-    @click="(e) => this.onClick(e, 1)"
-    @contextmenu="(e) => this.onClick(e, 2)"
-    @mousemove="this.onMouseMove"
-    ref="plannerContainerGrid"
+    @click="
+      (e) =>
+        this.serviceManager.interactionService.onPlannerContainerClick(
+          e,
+          this.$refs.plannerContainer,
+          this.$refs.createBlockVisualizer
+        ) //(e) => this.onClick(e, 1)
+    "
+    @contextmenu="
+      (e) =>
+        this.serviceManager.interactionService.onPlannerContainerContextMenu(
+          e,
+          this.$refs.plannerContainer,
+          this.$refs.createBlockVisualizer
+        ) //(e) => this.onClick(e, 2)
+    "
+    @mousemove="
+      (e) =>
+        this.serviceManager.interactionService.onPlannerContainerMouseMove(
+          e,
+          this.$refs.plannerContainer,
+          this.$refs.createBlockVisualizer
+        ) //this.onMouseMove
+    "
+    ref="plannerContainer"
     class="planner-container-grid"
     :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
     _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
@@ -160,134 +181,6 @@ export default {
   props: {
     rows: Array,
     year: Number,
-  },
-  methods: {
-    onClick(e, button) {
-      // Wählen des zuständigen Eventhandlers
-      const target_classList = e.target.classList;
-      if (target_classList.contains("planner-header-row-week")) {
-        this.onClickKWHeaderField(e, button);
-      } else if (target_classList.contains("free-day")) {
-        this.onClickFreeDay(e, button);
-      } else if (target_classList.contains("create-block-visualizer")) {
-        this.onClickBlockVisualizer(e, button);
-      }
-      e.stopPropagation();
-    },
-    onMouseMove(e) {
-      if (e.target.classList.contains("free-day")) {
-        this.onMoveOverFreeDay(e);
-      } else if (e.target.classList.contains("create-block-visualizer")) {
-        this.onMoveOverBlockVisualizer(e);
-      }
-      e.stopPropagation();
-    },
-    onClickKWHeaderField(e, button) {
-      e.preventDefault();
-      // bestimme den Kalenderwochen-Index des angeklickten KW-HeaderField über classList-Eintrag 'planner-header-row-week--??'
-      const kwIdx = Number(
-        Array.from(e.target.classList)
-          .find((c) => c.startsWith("planner-header-row-week--"))
-          ?.split("--")[1]
-      );
-      if (!Number.isFinite(kwIdx)) {
-        console.error("error: unable to determine the week to collapse/expand");
-        return;
-      }
-
-      if (
-        this.serviceManager.tableStateService.toggleCalenderWeekCollapseState(
-          kwIdx
-        )
-      ) {
-        e.target.classList.add("collapsed");
-      } else {
-        e.target.classList.remove("collapsed");
-      }
-    },
-    onClickFreeDay(e, button) {
-      const visualizer = this.$refs.createBlockVisualizer;
-      const container = this.$refs.plannerContainerGrid;
-
-      if (this.interaction_state === 0) {
-        if (button === 1) {
-          e.preventDefault();
-          this.interaction_state = 1;
-          this.interaction_startCell = e.target;
-          visualizer.classList.remove("hidden");
-
-          const containerRect = container.getBoundingClientRect(); // das bezugselement
-          const startCellRect =
-            this.interaction_startCell.getBoundingClientRect();
-
-          visualizer.style.top = `${startCellRect.top - containerRect.top}px`;
-          visualizer.style.left = `${
-            startCellRect.left - containerRect.left
-          }px`;
-          visualizer.style.width = `${startCellRect.width}px`;
-          visualizer.style.height = `${startCellRect.height}px`;
-        }
-      } else if (this.interaction_state === 1) {
-        if (button === 2) {
-          e.preventDefault();
-          // creating-data-state verlassen
-          visualizer.classList.add("hidden");
-          this.interaction_state = 0;
-        }
-      }
-    },
-    onSelectingOver(target) {
-      const visualizer = this.$refs.createBlockVisualizer;
-
-      const containerRect =
-        this.$refs.plannerContainerGrid.getBoundingClientRect(); // das Bezugselement
-      const startCellRect = this.interaction_startCell.getBoundingClientRect(); // das Startelement
-      const currentCellRect = target.getBoundingClientRect(); // das aktuell berührte Element
-
-      if (currentCellRect.left >= startCellRect.left) {
-        visualizer.style.left = `${startCellRect.left - containerRect.left}px`;
-        visualizer.style.width = `${
-          currentCellRect.right - startCellRect.left
-        }px`;
-      } else {
-        visualizer.style.left = `${
-          currentCellRect.left - containerRect.left
-        }px`;
-        visualizer.style.width = `${
-          startCellRect.left - currentCellRect.left
-        }px`;
-      }
-      if (currentCellRect.top >= startCellRect.top) {
-        visualizer.style.top = `${startCellRect.top - containerRect.top}px`;
-        visualizer.style.height = `${
-          currentCellRect.bottom - startCellRect.top
-        }px`;
-      } else {
-        visualizer.style.top = `${currentCellRect.top - containerRect.top}px`;
-        visualizer.style.height = `${
-          startCellRect.top - currentCellRect.top
-        }px`;
-      }
-    },
-    onMoveOverFreeDay(e) {
-      if (this.interaction_state !== 1) return;
-
-      this.onSelectingOver(e.target);
-    },
-    onMoveOverBlockVisualizer(e) {
-      this.$refs.createBlockVisualizer.classList.add("hidden");
-      const target = document.elementFromPoint(e.x, e.y);
-      this.$refs.createBlockVisualizer.classList.remove("hidden");
-      this.onSelectingOver(target);
-    },
-    onClickBlockVisualizer(e, button) {
-      e.preventDefault();
-      if (button === 2) {
-        // creating-data-state verlassen
-        this.$refs.createBlockVisualizer.classList.add("hidden");
-        this.interaction_state = 0;
-      }
-    },
   },
   beforeCreate() {
     //console.log("Planner -- beforeCreate");
