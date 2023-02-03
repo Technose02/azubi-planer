@@ -1,16 +1,16 @@
 import Service from "./Service";
 
 class Rect {
-  _top;
-  _left;
-  _right;
-  _bottom;
+  top;
+  left;
+  right;
+  bottom;
 
   constructor(top, right, bottom, left) {
-    this._top = top;
-    this._right = right;
-    this._bottom = bottom;
-    this._left = left;
+    this.top = top;
+    this.right = right;
+    this.bottom = bottom;
+    this.left = left;
   }
 
   static fromRect(rect) {
@@ -120,18 +120,20 @@ class InteractionService extends Service {
 
   _isInDataRange(event, headerCornerRect) {
     return (
-      event.x >= headerCornerRect.right && event.y > headerCornerRect.bottom
+      event.x > headerCornerRect.right && event.y > headerCornerRect.bottom
     );
   }
 
   // Technische Eventhandler Planner.vue
   onPlannerContainerClick(event, container, visualizer, headerCorner) {
     const target_classList = event.target.classList;
-    const headerCornerRect = headerCorner.getBoundingClientRect();
+    const headerCornerRect = Rect.fromRect(
+      headerCorner.getBoundingClientRect()
+    );
 
     // Wählen des zuständigen Eventhandlers
     if (this._isInDataRange(event, headerCornerRect)) {
-      this.onDataRangeClicked(
+      this.onDataCellRangeClick(
         event,
         container,
         visualizer,
@@ -151,11 +153,13 @@ class InteractionService extends Service {
   onPlannerContainerContextMenu(event, container, visualizer, headerCorner) {
     event.preventDefault();
     const target_classList = event.target.classList;
-    const headerCornerRect = headerCorner.getBoundingClientRect();
+    const headerCornerRect = Rect.fromRect(
+      headerCorner.getBoundingClientRect()
+    );
 
     // Wählen des zuständigen Eventhandlers
     if (this._isInDataRange(event, headerCornerRect)) {
-      this.onDataRangeClicked(
+      this.onDataCellRangeClick(
         event,
         container,
         visualizer,
@@ -173,13 +177,13 @@ class InteractionService extends Service {
     event.stopPropagation();
   }
   onPlannerContainerMouseMove(event, container, visualizer, headerCorner) {
-    const target_classList = event.target.classList;
-
-    const headerCornerRect = headerCorner.getBoundingClientRect();
+    const headerCornerRect = Rect.fromRect(
+      headerCorner.getBoundingClientRect()
+    );
 
     if (this._isInDataRange(event, headerCornerRect)) {
       // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
-      this.onMoveDataCellRange(event, container, visualizer, headerCornerRect);
+      this.onDataCellRangeMove(event, container, visualizer, headerCornerRect);
     }
     event.stopPropagation();
   }
@@ -212,7 +216,7 @@ class InteractionService extends Service {
     }
   }
 
-  onDataRangeClicked(event, container, visualizer, headerCornerRect, button) {
+  onDataCellRangeClick(event, container, visualizer, headerCornerRect, button) {
     if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
       if (button === this._MOUSE_BUTTON_LEFT) {
         this._interactionState = this._INTERACTION_STATE_SELECTING;
@@ -230,7 +234,7 @@ class InteractionService extends Service {
 
         visualizer.classList.remove("hidden");
 
-        const containerRect = container.getBoundingClientRect();
+        const containerRect = Rect.fromRect(container.getBoundingClientRect());
 
         visualizer.style.top = `${
           startHeaderRowCellRect.top - containerRect.top
@@ -238,8 +242,8 @@ class InteractionService extends Service {
         visualizer.style.left = `${
           startHeaderDayCellRect.left - containerRect.left
         }px`;
-        visualizer.style.width = `${startHeaderDayCellRect.width}px`;
-        visualizer.style.height = `${startHeaderRowCellRect.height}px`;
+        visualizer.style.width = `${startHeaderDayCellRect.width()}px`;
+        visualizer.style.height = `${startHeaderRowCellRect.height()}px`;
       }
     } else if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
       if (button === this._MOUSE_BUTTON_RIGHT) {
@@ -250,19 +254,24 @@ class InteractionService extends Service {
     }
   }
 
-  onMoveDataCellRange(event, container, visualizer, headerCornerRect) {
+  onDataCellRangeMove(event, container, visualizer, headerCornerRect) {
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
       const [headerDayCell, headerRowCell] = this._determineRelatedHeaderCells(
         event,
         headerCornerRect
       );
-      const headerDayCellRect = headerDayCell.getBoundingClientRect();
-      const headerRowCellRect = headerRowCell.getBoundingClientRect();
+
+      const headerDayCellRect = Rect.fromRect(
+        headerDayCell.getBoundingClientRect()
+      );
+      const headerRowCellRect = Rect.fromRect(
+        headerRowCell.getBoundingClientRect()
+      );
 
       const [startHeaderDayCellRect, startHeaderRowCellRect] =
         this._resolveRelatedStartHeaderRects(headerCornerRect);
 
-      const containerRect = container.getBoundingClientRect();
+      const containerRect = Rect.fromRect(container.getBoundingClientRect());
 
       if (headerDayCellRect.left >= startHeaderDayCellRect.left) {
         visualizer.style.left = `${
