@@ -365,8 +365,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 0.1rem solid black;
-  border-right: 0.1rem solid black;
+  /* border-bottom: 0.1rem solid black;
+  border-right: 0.1rem solid black; */
+  border: none;
   background-color: rgba(250, 194, 245, 0.534);
 
   position: absolute;
