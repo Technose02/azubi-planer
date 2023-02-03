@@ -5,24 +5,27 @@
         this.serviceManager.interactionService.onPlannerContainerClick(
           e,
           this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer
-        ) //(e) => this.onClick(e, 1)
+          this.$refs.createBlockVisualizer,
+          this.$refs.headerCorner
+        )
     "
     @contextmenu="
       (e) =>
         this.serviceManager.interactionService.onPlannerContainerContextMenu(
           e,
           this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer
-        ) //(e) => this.onClick(e, 2)
+          this.$refs.createBlockVisualizer,
+          this.$refs.headerCorner
+        )
     "
     @mousemove="
       (e) =>
         this.serviceManager.interactionService.onPlannerContainerMouseMove(
           e,
           this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer
-        ) //this.onMouseMove
+          this.$refs.createBlockVisualizer,
+          this.$refs.headerCorner
+        )
     "
     ref="plannerContainer"
     class="planner-container-grid"
@@ -82,6 +85,7 @@
     <div
       class="planner-cell planner-header-corner"
       style="grid-column: 1; grid-row: 1 / 4"
+      ref="headerCorner"
     ></div>
     <div
       :class="[
