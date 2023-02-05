@@ -151,7 +151,7 @@ class TableInteractionService extends Service {
     event.stopPropagation();
   }
   onPlannerContainerContextMenu(event, container, visualizer, headerCorner) {
-    event.preventDefault();
+    //event.preventDefault();
     const target_classList = event.target.classList;
     const headerCornerRect = Rect.fromRect(
       headerCorner.getBoundingClientRect()
@@ -221,6 +221,10 @@ class TableInteractionService extends Service {
       if (button === this._MOUSE_BUTTON_LEFT) {
         this._interactionState = this._INTERACTION_STATE_SELECTING;
 
+        /* TODO: - Aus Mouse-Position und event.target die Grid-Column identifizieren
+                 - Aus der Grid-Column den Day-Of-Year bestimmen und als Start Day-Of-Year speichern
+        */
+
         // _determineRelatedHeaderCells
         const [startHeaderDay, startHeaderRow] =
           this._determineRelatedHeaderCells(event, headerCornerRect);
@@ -250,6 +254,10 @@ class TableInteractionService extends Service {
         // creating-data-state verlassen
         visualizer.classList.add("hidden");
         this._interactionState = this._INTERACTION_STATE_NOTHING;
+      } else if (button === this._MOUSE_BUTTON_LEFT) {
+        // VORERST AUCH HIER: creating-data-state verlassen
+        visualizer.classList.add("hidden");
+        this._interactionState = this._INTERACTION_STATE_NOTHING;
       }
     }
   }
@@ -258,6 +266,11 @@ class TableInteractionService extends Service {
     console.log(this.getCellInfo(event));
 
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
+      /* TODO: - Aus Mouse-Position und event.target die Grid-Column identifizieren
+                 - Aus Start-Day-Of-Year über die Start-Grid-Column bestimmen
+                 - Den Visualizer entsprechend der ermittelten GridColumns zeichnen
+        */
+
       const [headerDayCell, headerRowCell] = this._determineRelatedHeaderCells(
         event,
         headerCornerRect
@@ -310,7 +323,25 @@ class TableInteractionService extends Service {
   getCellInfo(event) {
     // Daten-Zelle ermitteln:
     const { x, y } = event;
-    const { left, right, top, bottom } = event.target.getBoundingClientRect();
+    const { left, top, bottom } = event.target.getBoundingClientRect();
+    const borderWidth = Number.parseFloat(
+      getComputedStyle(event.target)["border-right-width"].split("px")[0]
+    );
+    const borderHeight = Number.parseInt(
+      getComputedStyle(event.target)["border-bottom-width"].split("px")[0]
+    );
+    const colOffset =
+      this._serviceRegister.tableStructureService.HEADER_COLUMNS;
+    const rowOffset = this._serviceRegister.tableStructureService.HEADER_ROWS;
+
+    // Offset-Dimensions:
+    const left_offset = Math.floor(left);
+    const right_offset = left_offset + event.target.offsetWidth - borderWidth;
+    const xRatio = (x - left_offset) / (right_offset - left_offset);
+
+    const top_offset = Math.floor(top);
+    const bottom_offset = top_offset + event.target.offsetHeight - borderHeight;
+    const yRatio = (y - top_offset) / (bottom_offset - top_offset);
 
     const cols = event.target.style.gridColumn
       .split("/")
@@ -322,29 +353,19 @@ class TableInteractionService extends Service {
       .map((s) => Number.parseInt(s.trim()));
     rows[1] = rows[1] ? rows[1] : rows[0] + 1;
 
-    const colOffset =
-      this._serviceRegister.tableStructureService.HEADER_COLUMNS;
-    const baseColumnWidth =
-      this._serviceRegister.tableStructureService.BASE_COLUMN_WIDTH;
-
     // Ermittle die Grid-Column der Mausposition:
-    const column = Math.round(
-      cols[0] + ((x - left) / (right - left)) * (cols[1] - cols[0])
-    );
+    const column = Math.floor(cols[0] + xRatio * (cols[1] - cols[0]));
+    const row = Math.floor(rows[0] + yRatio * (rows[1] - rows[0]));
 
-    // Ermittle die Grid-Row der Mausposition:
-    const row = Math.round(
-      rows[0] + ((y - top) / (bottom - top)) * (rows[1] - rows[0])
-    );
+    const [dayOfYearIdx, dayOfYear] =
+      this._serviceRegister.tableStructureService.getDayOfYearFromGridColumn(
+        column - colOffset
+      );
+    console.log(dayOfYearIdx, dayOfYear);
 
-    return `Zeile: ${row}, Spalte: ${column}(${
-      colOffset +
-      1 +
-      (column -
-        (colOffset + 1) -
-        ((column - (colOffset + 1)) % baseColumnWidth)) /
-        baseColumnWidth
-    })`;
+    // TODO: DataHeader-Row ermitteln und zurückgeben
+
+    return `Zeile: ${row}, Spalte: ${column}`;
     ////
   }
 }
