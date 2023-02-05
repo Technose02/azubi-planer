@@ -33,7 +33,7 @@
         ></planner-entry>
         <planner-entry
           :row-keys="['vvigo', 'iilse']"
-          :start-date="new Date(this.year, 0, 30)"
+          :start-date="new Date(this.year, 0, 31)"
           :end-date="new Date(this.year, 1, 19)"
           color="#FF0"
           name="Berufschule"
