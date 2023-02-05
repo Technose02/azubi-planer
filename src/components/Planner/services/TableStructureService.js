@@ -170,6 +170,18 @@ class TableStructureService extends Service {
     return dataGridColumnsForDayOfYear;
   }
 
+  // Funktioniert, könnte aber performanter umgesetzt werden (TODO)
+  getDayOfYearFromGridColumn(gridColumn) {
+    const mapping = this.getDayOfYearToGridIntervalMapping();
+    const dayOfYearIdx = mapping.findIndex(
+      (i) => i[0] <= gridColumn && i[1] >= gridColumn
+    );
+    if (!Number.isFinite(dayOfYearIdx)) return [undefined, undefined];
+    const dayOfYearStructure =
+      this.getEntityArrays().dayStructures[dayOfYearIdx];
+    return [dayOfYearIdx, dayOfYearStructure];
+  }
+
   //// Methods for Render-Support
   _calculateNumberOfLogicalDataColumns() {
     //console.log(`TableStructureService::_calculateNumberOfLogicalDataColumns()`);
