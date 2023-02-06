@@ -75,6 +75,24 @@ class TableDataService extends Service {
     this._assignedBlocks.set(blockId, [...new Set([...mappings, ...rowKeys])]);
   }
 
+  // Gibt die vollständige Objekte der aktuell im Kalender gesetzten Blöcke zurück
+  getAssignedBlocks() {
+    const assignedBlocks = [];
+
+    for (const [blockId, rowKeys] of this._assignedBlocks.entries()) {
+      const block = this._blockData.get(blockId);
+      assignedBlocks.push({
+        blockId,
+        name: block.name,
+        startDayOfYearIdx: block.startDayOfYearIdx,
+        endDayOfYearIdx: block.endDayOfYearIdx,
+        rowKeys,
+      });
+    }
+
+    return assignedBlocks;
+  }
+
   // Erstellt aus den Informationen über die existierenden Blöcke und die Zuordnungen der Spalten zu eben diesen
   // die darzustellenden Blöcke
   generateBlockDataRenderObjects() {
