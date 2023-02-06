@@ -1,3 +1,4 @@
+import Interval from "../../Interval";
 import Service from "./Service";
 
 class Rect {
@@ -63,6 +64,7 @@ class TableInteractionService extends Service {
   _curDayOfYearIdx = -1;
   _startRowKey = "";
   _curRowKey = "";
+  _curSelectionInvalid = false;
 
   constructor() {
     super();
@@ -74,6 +76,23 @@ class TableInteractionService extends Service {
     return (
       event.x > headerCornerRect.right && event.y > headerCornerRect.bottom
     );
+  }
+
+  _getSelectedRowKeys() {
+    const registeredRowKeys =
+      this._serviceRegister.tableDataService.getRegisteredRowKeys();
+    let startRow = registeredRowKeys.indexOf(this._startRowKey);
+    let endRow = registeredRowKeys.indexOf(this._curRowKey);
+    if (startRow > endRow) {
+      const tmp = startRow;
+      startRow = endRow;
+      endRow = tmp;
+    }
+    const selectedRowKeys = [];
+    for (let r = startRow; r <= endRow; r++) {
+      selectedRowKeys.push(registeredRowKeys[r]);
+    }
+    return selectedRowKeys;
   }
 
   _getFieldBoundsByDayOfYearIdx(dayOfYearIdx) {
@@ -144,6 +163,10 @@ class TableInteractionService extends Service {
     visualizer.style.left = `${left0 - leftOffset}px`;
     visualizer.style.width = `${right1 - left0}px`;
     visualizer.style.height = `${bottom1 - top0}px`;
+
+    visualizer.style.backgroundColor = this._curSelectionInvalid
+      ? "#B004"
+      : "#0B03";
 
     // show / hide visualizer:
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
@@ -268,10 +291,11 @@ class TableInteractionService extends Service {
         this._interactionState = this._INTERACTION_STATE_NOTHING;
         this._updateVisualizer(container, visualizer);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
-        // VORERST AUCH HIER: creating-data-state verlassen
+        // Wenn der ausgewählte Bereich ungültig ist: nichts machen!
+        if (this._curSelectionInvalid) return;
         this._interactionState = this._INTERACTION_STATE_NOTHING;
 
-        // Informationen zusammentragen
+        // Informationen zusammentragen, neuen Block anlegen und selecting-state verlassen
         const dayStructures =
           this._serviceRegister.tableStructureService.getEntityArrays()
             .dayStructures;
@@ -281,19 +305,6 @@ class TableInteractionService extends Service {
           const tmp = startDay;
           startDay = endDay;
           endDay = tmp;
-        }
-        const registeredRowKeys =
-          this._serviceRegister.tableDataService.getRegisteredRowKeys();
-        let startRow = registeredRowKeys.indexOf(this._startRowKey);
-        let endRow = registeredRowKeys.indexOf(this._curRowKey);
-        if (startRow > endRow) {
-          const tmp = startRow;
-          startRow = endRow;
-          endRow = tmp;
-        }
-        const selectedRowKeys = [];
-        for (let r = startRow; r <= endRow; r++) {
-          selectedRowKeys.push(registeredRowKeys[r]);
         }
 
         //console.log(
@@ -311,7 +322,7 @@ class TableInteractionService extends Service {
             },
             class: {},
           },
-          selectedRowKeys
+          this._getSelectedRowKeys()
         );
 
         this._updateVisualizer(container, visualizer);
@@ -332,6 +343,39 @@ class TableInteractionService extends Service {
       if (cellInfo) {
         // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
         [this._curRowKey, this._curDayOfYearIdx] = cellInfo;
+
+        const startRowIdx = this._serviceRegister.tableDataService
+          .getRegisteredRowKeys()
+          .findIndex((k) => k === this._startRowKey);
+        const curRowIdx = this._serviceRegister.tableDataService
+          .getRegisteredRowKeys()
+          .findIndex((k) => k === this._curRowKey);
+        const rowIntervalToCheck = Interval.createAutoCorrect(
+          startRowIdx,
+          curRowIdx
+        );
+
+        /// Check if intercepting with existing blocks
+        const dayIntervalToCheck = Interval.createAutoCorrect(
+          this._startDayOfYearIdx,
+          this._curDayOfYearIdx
+        );
+        this._curSelectionInvalid = this._serviceRegister.tableDataService
+          .getAssignedBlocks()
+          .filter((b) =>
+            Interval.createAutoCorrect(
+              b.startDayOfYearIdx,
+              b.endDayOfYearIdx
+            ).intersects(dayIntervalToCheck)
+          )
+          .flatMap((b) => b.rowKeys)
+          .map((rowKey) =>
+            this._serviceRegister.tableDataService
+              .getRegisteredRowKeys()
+              .findIndex((k) => k === rowKey)
+          )
+          .some((p) => rowIntervalToCheck.includes(p));
+
         this._updateVisualizer(container, visualizer);
       }
     }
