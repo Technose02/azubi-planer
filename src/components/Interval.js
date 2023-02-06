@@ -2,7 +2,7 @@ class Interval {
   constructor(start, end) {
     if (end < start) {
       // entartet (start===end) "noch erlaubt"
-      throw error("invalid interval bounds");
+      throw new Error(`invalid interval bounds: start: ${start}, end: ${end}`);
     }
     this.start = start;
     this.end = end;
