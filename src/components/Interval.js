@@ -1,4 +1,9 @@
 class Interval {
+  static createAutoCorrect(bound1, bound2) {
+    if (bound1 <= bound2) return new Interval(bound1, bound2);
+    return new Interval(bound2, bound1);
+  }
+
   constructor(start, end) {
     if (end < start) {
       // entartet (start===end) "noch erlaubt"
@@ -11,6 +16,10 @@ class Interval {
   intersects(other) {
     if (this.end < other.start || this.start > other.end) return false;
     return true;
+  }
+
+  includes(point) {
+    return point >= this.start && point <= this.end;
   }
   // Not needed as of yet
   /*
