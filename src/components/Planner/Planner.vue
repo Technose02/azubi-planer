@@ -139,7 +139,7 @@
               : '',
             Number.isFinite(d.week_number) ? `week--${d.week_number}` : '',
             Number.isFinite(d.month_number) ? `month--${d.month_number}` : '',
-            row.key ? `data--${row.key}` : '',
+            row.key ? `planner-row--${row.key}` : '',
           ]"
           :style="`${row.row_style} ${d.style_}`"
         ></div>
