@@ -271,22 +271,23 @@ class TableInteractionService extends Service {
     const { x, y, target } = event;
     if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
       if (button === this._MOUSE_BUTTON_LEFT) {
-        this._interactionState = this._INTERACTION_STATE_SELECTING;
+        const cellInfo = this.getCellInfo(x, y, target);
+        // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
+        if (cellInfo) {
+          this._interactionState = this._INTERACTION_STATE_SELECTING;
 
-        [this._startRowKey, this._startDayOfYearIdx] = this.getCellInfo(
-          x,
-          y,
-          target
-        );
-        [this._curRowKey, this._curDayOfYearIdx] = [
-          this._startRowKey,
-          this._startDayOfYearIdx,
-        ];
+          [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
+          [this._curRowKey, this._curDayOfYearIdx] = [
+            this._startRowKey,
+            this._startDayOfYearIdx,
+          ];
 
-        this._updateVisualizer(container, visualizer);
+          this._updateVisualizer(container, visualizer);
+        }
       }
     } else if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
       if (button === this._MOUSE_BUTTON_RIGHT) {
+        event.preventDefault();
         // creating-data-state verlassen
         this._interactionState = this._INTERACTION_STATE_NOTHING;
         this._updateVisualizer(container, visualizer);
@@ -340,8 +341,8 @@ class TableInteractionService extends Service {
         cellElement = Array.from(allElementsAtPos).at(1); // direkt unter dem Visualizer-Element
       }
       const cellInfo = this.getCellInfo(x, y, cellElement);
+      // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
       if (cellInfo) {
-        // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
         [this._curRowKey, this._curDayOfYearIdx] = cellInfo;
 
         const startRowIdx = this._serviceRegister.tableDataService
