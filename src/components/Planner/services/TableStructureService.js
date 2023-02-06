@@ -182,6 +182,13 @@ class TableStructureService extends Service {
     return [dayOfYearIdx, dayOfYearStructure];
   }
 
+  // Funktioniert, könnte aber performanter umgesetzt werden (TODO)
+  getRowIdxFromRowKey(rowKey) {
+    return this._serviceRegister.tableDataService
+      .getRegisteredRowKeys()
+      .indexOf(rowKey);
+  }
+
   //// Methods for Render-Support
   _calculateNumberOfLogicalDataColumns() {
     //console.log(`TableStructureService::_calculateNumberOfLogicalDataColumns()`);
