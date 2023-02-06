@@ -38,31 +38,37 @@ class TableDataService extends Service {
   // Das individuelle Styling sowie Infos für die Generierung der classList-Einträge erfolgt über die renderData-Struktur.
   importBlockData(name, startDate, endDate, renderData, rowKeys) {
     // Zunächst sind die Dates auf den jeweiligen dayOfYear-Index zu mappen
-    const entityArrays =
-      this._serviceRegister.tableStructureService.getEntityArrays();
+    const dayStructures =
+      this._serviceRegister.tableStructureService.getEntityArrays()
+        .dayStructures;
 
-    const startMonth = startDate.getMonth() + 1; // Korrektur nötig, da intern mit Monaten 1..12 gearbeitet wird, Date aber hier 0,..,11 liefert!!
-    const startDayInMonthIdx = startDate.getDate() - 1; // Korrektur von Tag des Monats auf Array-Index
-    const startDayOfYearIdx =
-      entityArrays.daysInMonthAsIndicesOfDayStructure[startMonth][
-        startDayInMonthIdx
-      ];
+    const startDayOfYearIdx = dayStructures.findIndex(
+      (d) => d.date_object >= startDate && d.date_object <= startDate
+    );
 
-    const endMonth = endDate.getMonth() + 1; // s.o.
-    const endDayInMonthIdx = endDate.getDate() - 1; // s.o
-    const endDayOfYearIdx =
-      entityArrays.daysInMonthAsIndicesOfDayStructure[endMonth][
-        endDayInMonthIdx
-      ];
+    if (!Number.isFinite(startDayOfYearIdx) || startDayOfYearIdx < 0) {
+      console.error(`invalid start-date: ${start_date}`);
+      return;
+    }
+
+    const endDayOfYearIdx = dayStructures.findIndex(
+      (d) => d.date_object >= endDate && d.date_object <= endDate
+    );
+
+    if (!Number.isFinite(endDayOfYearIdx) || endDayOfYearIdx < 0) {
+      console.error(`invalid end-date: ${end_date}`);
+      return;
+    }
 
     // Generiere eine BlockID und füge den Block hinzu
     const blockId = `${name}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
-    this._blockData.set(blockId, {
+    const blockDataToSet = {
       name,
       startDayOfYearIdx,
       endDayOfYearIdx,
       renderData,
-    });
+    };
+    this._blockData.set(blockId, blockDataToSet);
 
     // Füge Zuordnungen gemäß rowKeys-Parameter ohne Duplikate hinzu
     const mappings = this._assignedBlocks.get(blockId) ?? [];
