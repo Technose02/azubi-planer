@@ -59,11 +59,10 @@ class TableInteractionService extends Service {
   _interactionState = this._INTERACTION_STATE_NOTHING;
 
   //  _selectionStartCell = {};
-  _selectionStartHeaderDayCell = {};
-  _selectionStartHeaderRowCell = {};
-
-  _relativeStartHeaderDayCellRect = [];
-  _relativeStartHeaderRowCellRect = [];
+  _startDayOfYearIdx = -1;
+  _curDayOfYearIdx = -1;
+  _startRowKey = "";
+  _curRowKey = "";
 
   constructor() {
     super();
@@ -71,57 +70,87 @@ class TableInteractionService extends Service {
 
   _init() {}
 
-  _determineRelatedHeaderCells(event, headerCornerRect) {
-    const headerDayCell = document.elementFromPoint(
-      event.x,
-      headerCornerRect.bottom - 1
-    );
-    const headerRowCell = document.elementFromPoint(
-      headerCornerRect.right - 1,
-      event.y
-    );
-    return [headerDayCell, headerRowCell];
-  }
-
-  _resolveRelatedStartHeaderRects(headerCornerRect) {
-    const relativeStartHeaderDayCellRect = this._relativeStartHeaderDayCellRect;
-    relativeStartHeaderDayCellRect.moveLeft(headerCornerRect.left);
-
-    const relativeStartHeaderRowCellRect = this._relativeStartHeaderRowCellRect;
-    relativeStartHeaderRowCellRect.moveDown(headerCornerRect.top);
-
-    return [relativeStartHeaderDayCellRect, relativeStartHeaderRowCellRect];
-  }
-
-  _setSelectionStartHeaderCells(
-    startHeaderDayCell,
-    startHeaderRowCell,
-    headerCornerRect
-  ) {
-    this._selectionStartHeaderDayCell = startHeaderDayCell;
-    this._selectionStartHeaderRowCell = startHeaderRowCell;
-
-    const startHeaderDayCellRect = Rect.fromRect(
-      startHeaderDayCell.getBoundingClientRect()
-    );
-    this._relativeStartHeaderDayCellRect = startHeaderDayCellRect;
-    this._relativeStartHeaderDayCellRect.moveRight(headerCornerRect.left);
-
-    const startHeaderRowCellRect = Rect.fromRect(
-      startHeaderRowCell.getBoundingClientRect()
-    );
-    this._relativeStartHeaderRowCellRect = Rect.fromRect(
-      startHeaderRowCellRect
-    );
-    this._relativeStartHeaderRowCellRect.moveUp(headerCornerRect.top);
-
-    return [startHeaderDayCellRect, startHeaderRowCellRect];
-  }
-
   _isInDataRange(event, headerCornerRect) {
     return (
       event.x > headerCornerRect.right && event.y > headerCornerRect.bottom
     );
+  }
+
+  _getFieldBoundsByDayOfYearIdx(dayOfYearIdx) {
+    const dayStructure =
+      this._serviceRegister.tableStructureService.getEntityArrays()
+        .dayStructures[dayOfYearIdx];
+    const dayOfYear = dayStructure.day_of_year;
+    const weekIdx = dayStructure.in_week;
+    const dayOfWeek = dayStructure.day_of_week;
+
+    // try to get field by day of year (day in non-collapsed week)
+    let field = document.querySelector(
+      `.planner-header-row-day.day-year--${dayOfYear}`
+    );
+    if (field) {
+      const { left, right } = field.getBoundingClientRect();
+      return [left, right];
+    }
+    // day belongs to a collapsed week
+    field = document.querySelector(
+      `.collapsed.planner-header-row-day.week--${weekIdx}`
+    );
+    const { left, right } = field.getBoundingClientRect();
+    const left_ = left + (dayOfWeek / 7) * (right - left);
+    const right_ = left + ((dayOfWeek + 1) / 7) * (right - left);
+    return [left_, right_];
+  }
+
+  _getFieldBoundsByRowKey(rowKey) {
+    const field = document.querySelector(`.planner-header-column--${rowKey}`);
+    const { top, bottom } = field.getBoundingClientRect();
+    return [top, bottom];
+  }
+
+  _updateVisualizer(container, visualizer) {
+    const { left: leftOffset, top: topOffset } =
+      container.getBoundingClientRect();
+
+    let [left0, right0] = this._getFieldBoundsByDayOfYearIdx(
+      this._startDayOfYearIdx
+    );
+    let [left1, right1] = this._getFieldBoundsByDayOfYearIdx(
+      this._curDayOfYearIdx
+    );
+
+    if (this._curDayOfYearIdx < this._startDayOfYearIdx) {
+      let tmp = left0;
+      left0 = left1;
+      left1 = tmp;
+      tmp = right0;
+      right0 = right1;
+      right1 = tmp;
+    }
+
+    let [top0, bottom0] = this._getFieldBoundsByRowKey(this._startRowKey);
+    let [top1, bottom1] = this._getFieldBoundsByRowKey(this._curRowKey);
+
+    if (top1 < top0) {
+      let tmp = top0;
+      top0 = top1;
+      top1 = tmp;
+      tmp = bottom0;
+      bottom0 = bottom1;
+      bottom1 = tmp;
+    }
+
+    visualizer.style.top = `${top0 - topOffset}px`;
+    visualizer.style.left = `${left0 - leftOffset}px`;
+    visualizer.style.width = `${right1 - left0}px`;
+    visualizer.style.height = `${bottom1 - top0}px`;
+
+    // show / hide visualizer:
+    if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
+      visualizer.classList.remove("hidden");
+    } else {
+      visualizer.classList.add("hidden");
+    }
   }
 
   // Technische Eventhandler Planner.vue
@@ -137,7 +166,6 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
-        headerCornerRect,
         this._MOUSE_BUTTON_LEFT
       );
     } else if (target_classList.contains("planner-header-row-week")) {
@@ -163,7 +191,6 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
-        headerCornerRect,
         this._MOUSE_BUTTON_RIGHT
       );
     } else if (target_classList.contains("planner-header-row-week")) {
@@ -183,7 +210,7 @@ class TableInteractionService extends Service {
 
     if (this._isInDataRange(event, headerCornerRect)) {
       // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
-      this.onDataCellRangeMove(event, container, visualizer, headerCornerRect);
+      this.onDataCellRangeMove(event, container, visualizer);
     }
     event.stopPropagation();
   }
@@ -214,121 +241,107 @@ class TableInteractionService extends Service {
     } else {
       target_classList.remove("collapsed");
     }
+    visualizer.classList.add("hidden");
   }
 
-  onDataCellRangeClick(event, container, visualizer, headerCornerRect, button) {
+  onDataCellRangeClick(event, container, visualizer, button) {
+    const { x, y, target } = event;
     if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
       if (button === this._MOUSE_BUTTON_LEFT) {
         this._interactionState = this._INTERACTION_STATE_SELECTING;
 
-        /* TODO: - Aus Mouse-Position und event.target die Grid-Column identifizieren
-                 - Aus der Grid-Column den Day-Of-Year bestimmen und als Start Day-Of-Year speichern
-        */
+        [this._startRowKey, this._startDayOfYearIdx] = this.getCellInfo(
+          x,
+          y,
+          target
+        );
+        [this._curRowKey, this._curDayOfYearIdx] = [
+          this._startRowKey,
+          this._startDayOfYearIdx,
+        ];
 
-        // _determineRelatedHeaderCells
-        const [startHeaderDay, startHeaderRow] =
-          this._determineRelatedHeaderCells(event, headerCornerRect);
-
-        const [startHeaderDayCellRect, startHeaderRowCellRect] =
-          this._setSelectionStartHeaderCells(
-            startHeaderDay,
-            startHeaderRow,
-            headerCornerRect
-          );
-
-        visualizer.classList.remove("hidden");
-
-        const containerRect = Rect.fromRect(container.getBoundingClientRect());
-
-        visualizer.style.top = `${
-          startHeaderRowCellRect.top - containerRect.top
-        }px`;
-        visualizer.style.left = `${
-          startHeaderDayCellRect.left - containerRect.left
-        }px`;
-        visualizer.style.width = `${startHeaderDayCellRect.width()}px`;
-        visualizer.style.height = `${startHeaderRowCellRect.height()}px`;
+        this._updateVisualizer(container, visualizer);
       }
     } else if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
       if (button === this._MOUSE_BUTTON_RIGHT) {
         // creating-data-state verlassen
-        visualizer.classList.add("hidden");
         this._interactionState = this._INTERACTION_STATE_NOTHING;
+        this._updateVisualizer(container, visualizer);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
         // VORERST AUCH HIER: creating-data-state verlassen
-        visualizer.classList.add("hidden");
         this._interactionState = this._INTERACTION_STATE_NOTHING;
+
+        // Informationen zusammentragen
+        const dayStructures =
+          this._serviceRegister.tableStructureService.getEntityArrays()
+            .dayStructures;
+        let startDay = dayStructures[this._startDayOfYearIdx];
+        let endDay = dayStructures[this._curDayOfYearIdx];
+        if (startDay.date_object > endDay.date_object) {
+          const tmp = startDay;
+          startDay = endDay;
+          endDay = tmp;
+        }
+        const registeredRowKeys =
+          this._serviceRegister.tableDataService.getRegisteredRowKeys();
+        let startRow = registeredRowKeys.indexOf(this._startRowKey);
+        let endRow = registeredRowKeys.indexOf(this._curRowKey);
+        if (startRow > endRow) {
+          const tmp = startRow;
+          startRow = endRow;
+          endRow = tmp;
+        }
+        const selectedRowKeys = [];
+        for (let r = startRow; r <= endRow; r++) {
+          selectedRowKeys.push(registeredRowKeys[r]);
+        }
+
+        //console.log(
+        //  `Selected Time-Range: ${startDay.date_object} to ${endDay.date_object}`
+        //);
+        //console.log(`Selected rowKeys: ${selectedRowKeys.join(",")}`);
+
+        this._serviceRegister.tableDataService.importBlockData(
+          "Test",
+          startDay.date_object,
+          endDay.date_object,
+          {
+            style: {
+              color: "#0A0",
+            },
+            class: {},
+          },
+          selectedRowKeys
+        );
+
+        this._updateVisualizer(container, visualizer);
       }
     }
   }
 
-  onDataCellRangeMove(event, container, visualizer, headerCornerRect) {
-    console.log(this.getCellInfo(event));
-
+  onDataCellRangeMove(event, container, visualizer) {
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
-      /* TODO: - Aus Mouse-Position und event.target die Grid-Column identifizieren
-                 - Aus Start-Day-Of-Year über die Start-Grid-Column bestimmen
-                 - Den Visualizer entsprechend der ermittelten GridColumns zeichnen
-        */
+      const { x, y, target } = event;
+      let cellElement = target;
 
-      const [headerDayCell, headerRowCell] = this._determineRelatedHeaderCells(
-        event,
-        headerCornerRect
-      );
-
-      const headerDayCellRect = Rect.fromRect(
-        headerDayCell.getBoundingClientRect()
-      );
-      const headerRowCellRect = Rect.fromRect(
-        headerRowCell.getBoundingClientRect()
-      );
-
-      const [startHeaderDayCellRect, startHeaderRowCellRect] =
-        this._resolveRelatedStartHeaderRects(headerCornerRect);
-
-      const containerRect = Rect.fromRect(container.getBoundingClientRect());
-
-      if (headerDayCellRect.left >= startHeaderDayCellRect.left) {
-        visualizer.style.left = `${
-          startHeaderDayCellRect.left - containerRect.left
-        }px`;
-        visualizer.style.width = `${
-          headerDayCellRect.right - startHeaderDayCellRect.left
-        }px`;
-      } else {
-        visualizer.style.left = `${
-          headerDayCellRect.left - containerRect.left
-        }px`;
-        visualizer.style.width = `${
-          startHeaderDayCellRect.right - headerDayCellRect.left
-        }px`;
+      if (cellElement.classList.contains("create-block-visualizer")) {
+        const allElementsAtPos = document.elementsFromPoint(x, y);
+        cellElement = Array.from(allElementsAtPos).at(1); // direkt unter dem Visualizer-Element
       }
-
-      if (headerRowCellRect.top >= startHeaderRowCellRect.top) {
-        visualizer.style.top = `${
-          startHeaderRowCellRect.top - containerRect.top
-        }px`;
-        visualizer.style.height = `${
-          headerRowCellRect.bottom - startHeaderRowCellRect.top
-        }px`;
-      } else {
-        visualizer.style.top = `${headerRowCellRect.top - containerRect.top}px`;
-        visualizer.style.height = `${
-          startHeaderRowCellRect.bottom - headerRowCellRect.top
-        }px`;
+      const cellInfo = this.getCellInfo(x, y, cellElement);
+      if (cellInfo) {
+        // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
+        [this._curRowKey, this._curDayOfYearIdx] = cellInfo;
+        this._updateVisualizer(container, visualizer);
       }
     }
   }
   ///////////////// Get CellInfo from event (and event.target)
-  getCellInfo(event) {
+  getCellInfo(x, y, target) {
     // Daten-Zelle ermitteln:
-    const { x, y } = event;
-    const { left, top, bottom } = event.target.getBoundingClientRect();
+    const { left } = target.getBoundingClientRect();
     const borderWidth = Number.parseFloat(
-      getComputedStyle(event.target)["border-right-width"].split("px")[0]
-    );
-    const borderHeight = Number.parseInt(
-      getComputedStyle(event.target)["border-bottom-width"].split("px")[0]
+      getComputedStyle(target)["border-right-width"].split("px")[0]
     );
     const colOffset =
       this._serviceRegister.tableStructureService.HEADER_COLUMNS;
@@ -336,37 +349,63 @@ class TableInteractionService extends Service {
 
     // Offset-Dimensions:
     const left_offset = Math.floor(left);
-    const right_offset = left_offset + event.target.offsetWidth - borderWidth;
+    const right_offset = left_offset + target.offsetWidth - borderWidth;
     const xRatio = (x - left_offset) / (right_offset - left_offset);
 
-    const top_offset = Math.floor(top);
-    const bottom_offset = top_offset + event.target.offsetHeight - borderHeight;
-    const yRatio = (y - top_offset) / (bottom_offset - top_offset);
+    if (!target.style.gridColumn) return undefined;
 
-    const cols = event.target.style.gridColumn
+    const cols = target.style.gridColumn
       .split("/")
       .map((s) => Number.parseInt(s.trim()));
     cols[1] = cols[1] ?? cols[0] + 1;
 
-    const rows = event.target.style.gridRow
-      .split("/")
-      .map((s) => Number.parseInt(s.trim()));
-    rows[1] = rows[1] ? rows[1] : rows[0] + 1;
-
     // Ermittle die Grid-Column der Mausposition:
     const column = Math.floor(cols[0] + xRatio * (cols[1] - cols[0]));
-    const row = Math.floor(rows[0] + yRatio * (rows[1] - rows[0]));
 
     const [dayOfYearIdx, dayOfYear] =
       this._serviceRegister.tableStructureService.getDayOfYearFromGridColumn(
         column - colOffset
       );
-    console.log(dayOfYearIdx, dayOfYear);
 
-    // TODO: DataHeader-Row ermitteln und zurückgeben
+    // Spezialbehandlung für rows: hier sind in Blocks die Zeilen nicht immer gleich hoch!
+    // Daher: bestimmen der exakten Zeile über Position und class-selector
 
-    return `Zeile: ${row}, Spalte: ${column}`;
-    ////
+    let rowKey;
+
+    if (target.classList.contains("free-day")) {
+      rowKey = Array.from(target.classList)
+        .filter((c) => c.startsWith("planner-row--"))
+        .map((c) => c.split("--")[1])[0];
+    } else {
+      const rowKeys = Array.from(target.classList)
+        .filter((c) => c.startsWith("planner-rows--"))
+        .map((c) => c.split("--")[1])
+        .flatMap((l) => l.split("-"));
+      if (rowKeys.length === 1) {
+        rowKey = rowKeys[0];
+      } else {
+        for (const k of rowKeys) {
+          const headerField = document.querySelector(
+            `.planner-header-column--${k}`
+          );
+          const { top, bottom } = headerField.getBoundingClientRect();
+          if (y >= top && y <= bottom) {
+            rowKey = k;
+            break;
+          }
+        }
+      }
+    }
+
+    //console.log(
+    //  `Zeile: ${
+    //    this._serviceRegister.tableStructureService.getRowIdxFromRowKey(
+    //      rowKey
+    //    ) + rowOffset
+    //  }, Spalte: ${column}`
+    //);
+
+    return [rowKey, dayOfYearIdx];
   }
 }
 
