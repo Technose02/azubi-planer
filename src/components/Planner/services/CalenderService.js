@@ -128,6 +128,11 @@ class CalenderService extends Service {
         notThisYear = true;
       }
 
+      let yearForStructure = year;
+      if (notThisYear) {
+        yearForStructure = month >= 6 ? year - 1 : year + 1;
+      }
+
       const dayStructure = {
         day_of_year: dayOfYear,
         in_month: month,
@@ -135,6 +140,7 @@ class CalenderService extends Service {
         in_week: weekCounter,
         day_of_week: (d.getDay() + 6) % 7, // in den Entities sollen Wochen mit einem Montag und Index 0 beginnen
         notThisYear,
+        date_object: new Date(yearForStructure, month - 1, dayInMonth),
       };
 
       if (!entityArrays.daysInWeekAsIndicesOfDayStructure[weekCounter])
