@@ -7,7 +7,7 @@ class TableStructureService extends Service {
   // Es sind 7, da im Falle kollabierter KWs eine Spalte, die visuell die Breite eines Tages
   // im ausgeklappten Fall hat, die Daten einer Woche, also 7 Tage, qualitativ geeignet
   // anordnen muss
-  BASE_COLUMN_WIDTH = 7;
+  _BASE_COLUMN_WIDTH = 7;
 
   // dies ist die Anzahl von Kopf-Zeilen vor dem Datenbereich
   // das Layout sieht aktuell keine weiteren Kopf-Zeilen vor
@@ -16,6 +16,11 @@ class TableStructureService extends Service {
   // dies ist die Anzahl von Kopf-Spalten vor dem Datenbereich
   // das Layout sieht aktuell keine weiteren Kopf-Spalten vor - der Bereich wird sowieso schon sehr breit -
   HEADER_COLUMNS = 1;
+
+  // Breite des kleinsten Zell-Anteils ; eine "logische" Spalte im Kalender (also für einen Tag bei ausgeklappter Woche, ansonsten eine Woche)
+  // besteht aus _BASE_COLUMN_WIDTH solcher BASE_CELLs in der Breite
+  _BASE_CELL_WIDTH = 1;
+  _BASE_CELL_HEIGHT = 4;
 
   _year;
 
@@ -44,7 +49,7 @@ class TableStructureService extends Service {
     return new GridAssistant(
       this.HEADER_COLUMNS,
       this.HEADER_COLUMNS + this.getNumberOfLogicalDataColumns(),
-      this.BASE_COLUMN_WIDTH
+      this._BASE_COLUMN_WIDTH
     );
   }
 
@@ -125,22 +130,22 @@ class TableStructureService extends Service {
               ];
             }
           );
-          dataGridColumnOffset += this.BASE_COLUMN_WIDTH;
+          dataGridColumnOffset += this._BASE_COLUMN_WIDTH;
         } else {
           // betrachtete Kalenderwoche ist nicht kollabiert:
           dayOfYearIndicesInCalenderWeek.forEach(
             (dayOfYearIdx, positionInCurrentWeek) => {
               const startGridColumn =
                 dataGridColumnOffset +
-                this.BASE_COLUMN_WIDTH * positionInCurrentWeek +
+                this._BASE_COLUMN_WIDTH * positionInCurrentWeek +
                 1;
               dataGridColumnsForDayOfYear[dayOfYearIdx] = [
                 startGridColumn,
-                startGridColumn + this.BASE_COLUMN_WIDTH - 1,
+                startGridColumn + this._BASE_COLUMN_WIDTH - 1,
               ];
             }
           );
-          dataGridColumnOffset += this.BASE_COLUMN_WIDTH * 7; // 7 Tage in einer Woche
+          dataGridColumnOffset += this._BASE_COLUMN_WIDTH * 7; // 7 Tage in einer Woche
         }
       }
     );
@@ -201,7 +206,7 @@ class TableStructureService extends Service {
     const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
-    const stepCollapsed = this.BASE_COLUMN_WIDTH; // eine logische Spalte (so breit wie ein Tag wenn nicht kollabiert) ist für eine kollabierte KW vorgesehen
+    const stepCollapsed = this._BASE_COLUMN_WIDTH; // eine logische Spalte (so breit wie ein Tag wenn nicht kollabiert) ist für eine kollabierte KW vorgesehen
     const stepNonCollapsed = 7 * stepCollapsed; // sieben Tage sind darzustellen wenn die KW nicht kollabiert ist
 
     let k = 0;
@@ -271,7 +276,9 @@ class TableStructureService extends Service {
       months.push({
         name: monthName,
         month_number: monthNumberToPush,
-        style_: `grid-column: ${startColumn} / ${endColumn + 1};`,
+        style_: `grid-column: ${startColumn} / ${endColumn + 1}; min-width: ${
+          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
+        }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
       });
     });
     return months;
@@ -309,13 +316,16 @@ class TableStructureService extends Service {
         dayOfYearToGridIntervalMapping[indexOfLastDayCurrentWeek][1];
 
       if (calenderWeeksCollapsedState[weekNumber]) {
-        endColumn = startColumn + this.BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC_BASE_COLUMN_WIDTH GridColumns zu verwenden
+        endColumn = startColumn + this._BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC__BASE_COLUMN_WIDTH GridColumns zu verwenden
       }
 
       weeks.push({
         name: weekName,
         week_number: weekNumber,
-        style_: `grid-column: ${startColumn} / ${endColumn + 1};`,
+        collapsed: calenderWeeksCollapsedState[weekNumber],
+        style_: `grid-column: ${startColumn} / ${endColumn + 1}; width: ${
+          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
+        }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
       });
     });
     return weeks;
@@ -358,7 +368,7 @@ class TableStructureService extends Service {
         const lastDay = entityArrays.dayStructures[daysOfWeekIndices[1]];
         const startDataColumn =
           dayOfYearToGridIntervalMapping[daysOfWeekIndices[0]][0];
-        const endDataColumn = startDataColumn + this.BASE_COLUMN_WIDTH - 1;
+        const endDataColumn = startDataColumn + this._BASE_COLUMN_WIDTH - 1;
 
         let month_number = firstDay.in_month;
         if (firstDay.in_month !== lastDay.in_month) {
@@ -380,7 +390,9 @@ class TableStructureService extends Service {
           data_columns: [startDataColumn, endDataColumn],
           style_: `grid-column: ${startDataColumn + this.HEADER_COLUMNS} / ${
             endDataColumn + this.HEADER_COLUMNS + 1
-          };`,
+          }; width: ${
+            this._BASE_CELL_WIDTH * (endDataColumn + 1 - startDataColumn)
+          }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
           display_text: false,
           collapsed: true,
         });
@@ -401,7 +413,9 @@ class TableStructureService extends Service {
             data_columns: [...dataColumns],
             style_: `grid-column: ${startDataColumn + this.HEADER_COLUMNS} / ${
               endDataColumn + this.HEADER_COLUMNS + 1
-            };`,
+            }; width: ${
+              this._BASE_CELL_WIDTH * (endDataColumn + 1 - startDataColumn)
+            }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
             display_text: true,
             not_this_year: day.notThisYear,
           });
@@ -412,7 +426,7 @@ class TableStructureService extends Service {
   }
 
   //// Erzeugt die Strukturen, die die Template des Planners zum Erzeugen der (noch einzigen) Daten Kopfspalte verwendet
-  _createDataHeaderColumnObjects() {
+  _createDataHeaderColumnObjects(textTester) {
     //console.log(`TableStructureService::_createDataHeaderColumnObjects() -- already cached`);
 
     const rows = [];
@@ -422,33 +436,48 @@ class TableStructureService extends Service {
     const registeredRowTitles =
       this._serviceRegister.tableDataService.getRegisteredRowTitles();
 
+    // test text-width
+    let width_in_rem = 20;
+    if (textTester) {
+      let width = 0;
+      let longestName = "";
+      for (let name of registeredRowTitles) {
+        textTester.innerHTML = name;
+        let testWidth = textTester.clientWidth * 1.05;
+        if (testWidth > width) {
+          width = testWidth;
+          longestName = name;
+        }
+      }
+      textTester.innerHTML = longestName;
+      width_in_rem = width / 10;
+    }
+
     registeredRowKeys.forEach((key, keyIdx) => {
       rows.push({
         key: key,
         title: registeredRowTitles[keyIdx],
-        column_style: `grid-column: ${this.HEADER_COLUMNS};`,
+        col_style: `grid-column: ${this.HEADER_COLUMNS}; grid-row: ${
+          this.HEADER_ROWS + keyIdx
+        };`,
         row_style: `grid-row: ${this.HEADER_ROWS + keyIdx};`,
+        style_: `${this.row_style};${this.row_style}; width: ${width_in_rem}rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
       });
     });
     return rows;
   }
 
-  getDataHeaderColumnObjects() {
-    //console.log(`TableStructureService::getDataHeaderColumnObjects() -- already cached`);
-
-    const calenderWeeksCollapsedState =
-      this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
-
+  getDataHeaderColumnObjects(textTester) {
     // Lazy-Loading-Pattern
     let dataHeaderColumnObjects =
-      this._serviceRegister.cacheService.restoreDataHeaderColumnObjectsForCollapsedState(
-        calenderWeeksCollapsedState
+      this._serviceRegister.cacheService.restoreDataHeaderColumnObjectsForTextTesterElement(
+        textTester
       );
     if (!dataHeaderColumnObjects) {
-      dataHeaderColumnObjects = this._createDataHeaderColumnObjects();
+      dataHeaderColumnObjects = this._createDataHeaderColumnObjects(textTester);
 
-      this._serviceRegister.cacheService.saveDataHeaderColumnObjectsForCollapsedState(
-        calenderWeeksCollapsedState,
+      this._serviceRegister.cacheService.saveDataHeaderColumnObjectsForTextTesterElement(
+        textTester,
         dataHeaderColumnObjects
       );
     }
@@ -467,9 +496,6 @@ class TableStructureService extends Service {
     const blockDataRenderObjectsArray =
       this._serviceRegister.tableDataService.generateBlockDataRenderObjects();
 
-    const registeredRowKeys =
-      this._serviceRegister.tableDataService.getRegisteredRowKeys();
-
     blockDataRenderObjectsArray.forEach((block) => {
       const startColumn =
         this.HEADER_COLUMNS +
@@ -485,7 +511,7 @@ class TableStructureService extends Service {
           block.end_data_row_index + this.HEADER_ROWS + 1
         }; grid-column: ${startColumn} / ${endColumn + 1}; background-color: ${
           block.renderData.style.color
-        };`,
+        }; width: ${this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)}rem;`,
       });
     });
     return blockDataRenderObjects;
@@ -531,7 +557,7 @@ class TableStructureService extends Service {
           day_of_year: -1,
           style_: `grid-column: ${brs[0] + this.HEADER_COLUMNS} / ${
             brs[1] + this.HEADER_COLUMNS
-          };`,
+          };width: ${this._BASE_CELL_WIDTH * (brs[1] - brs[0])}rem;`,
         });
       })
     );

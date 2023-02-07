@@ -33,7 +33,7 @@
     _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
   >
     <div
-      class="planner-cell planner-header-row planner-header-row-month"
+      class="planner-cell planner-header planner-header-row planner-header-row-month"
       v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects()"
       :class="[
         Number.isFinite(m.month_number)
@@ -47,11 +47,13 @@
     <div
       :class="[
         'planner-cell',
+        'planner-header',
         'planner-header-row',
         'planner-header-row-week',
         Number.isFinite(w.week_number)
           ? `planner-header-row-week--${w.week_number}`
           : '',
+        w.collapsed ? 'collapsed' : '',
       ]"
       v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects()"
       :style="w.style_"
@@ -62,6 +64,7 @@
       v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects()"
       :class="[
         'planner-cell',
+        'planner-header',
         'planner-header-row',
         'planner-header-row-day',
         Number.isFinite(d.day_of_year) ? `day-year--${d.day_of_year}` : '',
@@ -75,7 +78,15 @@
       ]"
       :style="d.style_"
     >
-      <div style="display: flex; flex-direction: column">
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          height: 100%;
+          width: 100%;
+        "
+      >
         <template v-if="d.display_text">
           <span class="planner-header-day-week">{{ d.day_of_week_str }}</span>
           <span class="planner-header-day-month">{{ d.day_of_month }}</span>
@@ -83,17 +94,20 @@
       </div>
     </div>
     <div
-      class="planner-cell planner-header-corner"
+      class="planner-cell planner-header planner-header-corner"
       style="grid-column: 1; grid-row: 1 / 4"
       ref="headerCorner"
     ></div>
     <div
       :class="[
         'planner-cell',
+        'planner-header',
         'planner-header-column',
         row.key ? `planner-header-column--${row.key}` : '',
       ]"
-      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects(
+        this.$refs.textTester
+      )"
       :style="`${row.style_}`"
     >
       {{ row.title }}
@@ -164,6 +178,7 @@
       class="create-block-visualizer hidden"
     ></div>
   </div>
+  <div class="planner-header-column text-tester" ref="textTester"></div>
 </template>
 <script>
 import { store } from "./store.js";
@@ -174,11 +189,6 @@ export default {
     return {
       serviceManager: [],
       shared: store,
-      rowTitles: [],
-
-      // interaction-states: 0 - nothing, 1 - creating-data
-      interaction_state: 0,
-      interaction_startCell: {},
     };
   },
   name: "planner",
@@ -223,6 +233,18 @@ export default {
   cursor: default;
   user-select: none;
   position: relative;
+}
+
+.planner-header {
+  display: flex;
+  align-items: center;
+}
+.planner-header-row {
+  justify-content: center;
+}
+
+.planner-header-column {
+  justify-content: flex-end;
 }
 
 .planner-header-row-month--1 {
@@ -287,15 +309,6 @@ export default {
 
 .data-cell {
   background-color: #f3e0be;
-  min-width: 2.93rem;
-}
-
-.free-day {
-  min-width: 0;
-}
-
-.planner-block {
-  min-width: 0;
 }
 
 .planner-header-corner {
@@ -309,8 +322,14 @@ export default {
   grid-column: 1;
   border-left: 0.1rem solid black;
   font-size: 1.8rem;
-  min-width: 18rem;
   text-align: left;
+}
+.planner-header-column.text-tester {
+  position: absolute;
+  visibility: hidden;
+  height: auto;
+  width: auto;
+  white-space: nowrap;
 }
 
 .planner-header-row-month {
@@ -323,20 +342,19 @@ export default {
   grid-row: 2;
   background-color: #92a8d1;
   font-size: 1.8rem;
-  /*min-width: 5.5rem;*/
 }
 
 .planner-header-row-week.collapsed {
   grid-row: 2;
   background-color: #8298c0;
   font-size: 1.8rem;
-  /*min-width: 5.5rem;*/
 }
 
 .planner-header-row-day {
   grid-row: 3;
   background-color: #f7cac9;
   font-size: 1vw;
+  display: block;
 }
 
 .planner-header-row-day.not-this-year {
@@ -345,12 +363,12 @@ export default {
 }
 
 .planner-header-day-week {
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.8rem;
+  /*font-weight: bold;*/
   align-self: flex-start;
 }
 .planner-header-day-month {
-  font-size: 1.4rem;
+  font-size: 1.8rem;
   align-self: flex-end;
 }
 .planner-block {
