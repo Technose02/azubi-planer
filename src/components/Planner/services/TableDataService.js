@@ -6,7 +6,7 @@ class TableDataService extends Service {
   DEFAULT_TYPE = "unspezifiziert";
   _DEFAULT_TYPE_DATA = {
     color: "#FFF",
-    labels: ["unbenannt", ""],
+    labels: ["unspezifiziert", ""],
   };
 
   _registeredRowKeys;
@@ -91,10 +91,9 @@ class TableDataService extends Service {
     for (const [blockId, rowKeys] of this._assignedBlocks.entries()) {
       const block = this._blockData.get(blockId);
       assignedBlocks.push({
-        blockId,
-        name: block.name,
         startDayOfYearIdx: block.startDayOfYearIdx,
         endDayOfYearIdx: block.endDayOfYearIdx,
+        type: block.type,
         rowKeys,
       });
     }
@@ -160,6 +159,7 @@ class TableDataService extends Service {
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],
           end_data_row_index: dataRowIndices.at(-1),
+          unspecified: block.type === this.DEFAULT_TYPE,
         });
       });
     }

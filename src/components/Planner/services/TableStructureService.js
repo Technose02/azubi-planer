@@ -514,6 +514,7 @@ class TableStructureService extends Service {
         }; width: ${
           this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
         }rem; white-space: nowrap;`,
+        unspecified: block.unspecified,
       });
     });
     return blockDataRenderObjects;

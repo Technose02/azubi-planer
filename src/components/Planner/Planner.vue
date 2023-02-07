@@ -125,6 +125,7 @@
         'planner-block',
         b.block_name ? `planner-block--${b.block_name}` : '',
         b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
+        b.unspecified ? 'unspecified' : '',
       ]"
       :style="b.style_"
     >
@@ -378,6 +379,10 @@ export default {
   justify-content: center;
   border-bottom: 0.1rem solid black;
   border-right: 0.1rem solid black;
+}
+
+.planner-block.unspecified {
+  font-style: italic;
 }
 
 .create-block-visualizer {
