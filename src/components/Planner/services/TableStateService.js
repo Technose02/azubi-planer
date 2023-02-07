@@ -15,7 +15,7 @@ class TableStateService extends Service {
     // Die Anzahl der enthaltenen Kalenderwochen erhalten wir z.B. aus der Länge des Array daysInWeekAsDayOfYear
     this._calenderWeeksCollapsedStates = Array(
       entityArrays.daysInWeekAsDayOfYear.length
-    ).fill(false);
+    ).fill(true);
   }
 
   getCalenderWeekCollapsedStates() {
