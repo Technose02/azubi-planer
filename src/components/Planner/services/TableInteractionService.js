@@ -123,8 +123,10 @@ class TableInteractionService extends Service {
 
   _getFieldBoundsByRowKey(rowKey) {
     const field = document.querySelector(`.planner-header-column--${rowKey}`);
-    const { top, bottom } = field.getBoundingClientRect();
-    return [top, bottom];
+    if (field) {
+      const { top, bottom } = field.getBoundingClientRect();
+      return [top, bottom];
+    }
   }
 
   _updateVisualizer(container, visualizer) {
@@ -147,26 +149,28 @@ class TableInteractionService extends Service {
       right1 = tmp;
     }
 
-    let [top0, bottom0] = this._getFieldBoundsByRowKey(this._startRowKey);
-    let [top1, bottom1] = this._getFieldBoundsByRowKey(this._curRowKey);
+    if (this._startRowKey && this._curRowKey) {
+      let [top0, bottom0] = this._getFieldBoundsByRowKey(this._startRowKey);
+      let [top1, bottom1] = this._getFieldBoundsByRowKey(this._curRowKey);
 
-    if (top1 < top0) {
-      let tmp = top0;
-      top0 = top1;
-      top1 = tmp;
-      tmp = bottom0;
-      bottom0 = bottom1;
-      bottom1 = tmp;
+      if (top1 < top0) {
+        let tmp = top0;
+        top0 = top1;
+        top1 = tmp;
+        tmp = bottom0;
+        bottom0 = bottom1;
+        bottom1 = tmp;
+      }
+
+      visualizer.style.top = `${top0 - topOffset}px`;
+      visualizer.style.left = `${left0 - leftOffset}px`;
+      visualizer.style.width = `${right1 - left0}px`;
+      visualizer.style.height = `${bottom1 - top0}px`;
+
+      visualizer.style.backgroundColor = this._curSelectionInvalid
+        ? "#B004"
+        : "#0B03";
     }
-
-    visualizer.style.top = `${top0 - topOffset}px`;
-    visualizer.style.left = `${left0 - leftOffset}px`;
-    visualizer.style.width = `${right1 - left0}px`;
-    visualizer.style.height = `${bottom1 - top0}px`;
-
-    visualizer.style.backgroundColor = this._curSelectionInvalid
-      ? "#B004"
-      : "#0B03";
 
     // show / hide visualizer:
     if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
