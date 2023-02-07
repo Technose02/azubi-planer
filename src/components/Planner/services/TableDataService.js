@@ -6,7 +6,7 @@ class TableDataService extends Service {
   UNSPECIFIED_TYPE = "unspezifiziert";
   _UNSPECIFIED_TYPE_DATA = {
     color: "#FFF",
-    labels: ["unspezifiziert", ""],
+    labels: ["unspezifiziert"],
   };
 
   _registeredRowKeys;
@@ -157,7 +157,7 @@ class TableDataService extends Service {
         blockDataRenderObjects.push({
           startDayOfYearIdx: block.startDayOfYearIdx,
           endDayOfYearIdx: block.endDayOfYearIdx,
-          name: blockData.labels[0],
+          labels: blockData.labels,
           color: blockData.color,
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],

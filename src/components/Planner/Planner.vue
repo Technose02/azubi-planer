@@ -118,7 +118,9 @@
     <!-- Über den Slot werden lediglich Blöcke 'logisch' in den Planner geladen, nicht gerendert -->
     <!-- Rendern der Block-Daten erfolgt nur direkt aus dem Model heraus in diesem div: -->
     <div
-      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
+      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects(
+        this.$refs.textTester
+      )"
       :class="[
         'planner-cell',
         'data-cell',

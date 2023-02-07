@@ -36,15 +36,15 @@ class TableStructureService extends Service {
     this.initializeTableStructure();
   }
 
+  _getWidthOfTextInRem(textTester, text, fontSizeStyle) {
+    if (!textTester) return undefined;
+    textTester.style.fontSize = fontSizeStyle;
+    textTester.innerHTML = text;
+    return textTester.clientWidth * 0.105; // Skalieren mit 1.05 und dann Teilen durch 10 wegen px->rem
+  }
+
   _createGridAssistant() {
     //console.log(`TableStructureService::_createGridAssistant()`);
-
-    // - Daten-Spalten beginnen mit Spalte 'this.HEADER_COLUMNS'
-    // -  da rechts kein offset vorgesehen ist ist die letzte Datenspalte die Summe
-    //      'this.HEADER_COLUMNS' + 'this.getNumberOfLogicalDataColumns()'
-    const firstDataCol = this.HEADER_COLUMNS;
-    const lastDataCol =
-      this.HEADER_COLUMNS + this.getNumberOfLogicalDataColumns();
 
     return new GridAssistant(
       this.HEADER_COLUMNS,
@@ -437,20 +437,21 @@ class TableStructureService extends Service {
       this._serviceRegister.tableDataService.getRegisteredRowTitles();
 
     // test text-width
+    const sampleField = document.querySelector(".planner-header-column");
     let width_in_rem = 20;
-    if (textTester) {
-      let width = 0;
-      let longestName = "";
+    if (textTester && sampleField) {
+      let _widthInRem = 0;
       for (let name of registeredRowTitles) {
-        textTester.innerHTML = name;
-        let testWidth = textTester.clientWidth * 1.05;
-        if (testWidth > width) {
-          width = testWidth;
-          longestName = name;
+        const textWidthInRem = this._getWidthOfTextInRem(
+          textTester,
+          name,
+          sampleField.style.fontSize
+        );
+        if (textWidthInRem > _widthInRem) {
+          _widthInRem = textWidthInRem;
         }
       }
-      textTester.innerHTML = longestName;
-      width_in_rem = width / 10;
+      width_in_rem = _widthInRem;
     }
 
     registeredRowKeys.forEach((key, keyIdx) => {
@@ -485,7 +486,7 @@ class TableStructureService extends Service {
   }
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Blöcke verwendet
-  getBlockDataRenderObjects() {
+  getBlockDataRenderObjects(textTester) {
     //console.log(`TableStructureService::getBlockDataRenderObjects()`);
 
     const blockDataRenderObjects = [];
@@ -504,16 +505,45 @@ class TableStructureService extends Service {
         this.HEADER_COLUMNS +
         dayOfYearToGridIntervalMapping[block.endDayOfYearIdx][1];
 
+      // Wähle den Text so, dass er passt
+      const availableWidthInRem =
+        this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn);
+      const cell = document.querySelector(".planner-block");
+      let label = block.labels[0];
+      if (cell) {
+        label = undefined;
+        for (let curLabel of block.labels) {
+          const textWidthInRem = this._getWidthOfTextInRem(
+            textTester,
+            curLabel,
+            cell.style.fontSize
+          );
+          if (textWidthInRem <= availableWidthInRem) {
+            label = curLabel;
+            break;
+          }
+        }
+        // TODO
+        if (!label && block.labels.at(-1).length > 4) {
+          for (let k = block.labels.at(-1).length - 3; k >= 1; k--) {
+            label = `${block.labels.slice(0, k - 1)}...`;
+            console.log(label);
+          }
+          label = undefined;
+        }
+        if (!label) {
+          label = "";
+        }
+      }
+
       blockDataRenderObjects.push({
-        block_name: block.name,
+        block_name: label,
         row_key_list: block.row_key_list,
         style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
           block.end_data_row_index + this.HEADER_ROWS + 1
         }; grid-column: ${startColumn} / ${endColumn + 1}; background-color: ${
           block.color
-        }; width: ${
-          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
-        }rem; white-space: nowrap;`,
+        }; width: ${availableWidthInRem}rem; white-space: nowrap;`,
         unspecified: block.unspecified,
       });
     });
