@@ -316,7 +316,7 @@ class TableInteractionService extends Service {
         this._serviceRegister.tableDataService.importBlockData(
           startDay.date_object,
           endDay.date_object,
-          this._serviceRegister.tableDataService.DEFAULT_TYPE,
+          this._serviceRegister.tableDataService.UNSPECIFIED_TYPE,
           this._getSelectedRowKeys()
         );
 

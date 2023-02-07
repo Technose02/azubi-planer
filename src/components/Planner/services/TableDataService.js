@@ -3,8 +3,8 @@ import { assert } from "@vue/compiler-core";
 import Interval from "./../../Interval";
 
 class TableDataService extends Service {
-  DEFAULT_TYPE = "unspezifiziert";
-  _DEFAULT_TYPE_DATA = {
+  UNSPECIFIED_TYPE = "unspezifiziert";
+  _UNSPECIFIED_TYPE_DATA = {
     color: "#FFF",
     labels: ["unspezifiziert", ""],
   };
@@ -29,7 +29,10 @@ class TableDataService extends Service {
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
     this._registeredTypes = new Map();
-    this._registeredTypes.set(this.DEFAULT_TYPE, this._DEFAULT_TYPE_DATA);
+    this._registeredTypes.set(
+      this.UNSPECIFIED_TYPE,
+      this._UNSPECIFIED_TYPE_DATA
+    );
     types.forEach((entry) => {
       this._registeredTypes.set(entry.type, entry.data);
     });
@@ -159,7 +162,7 @@ class TableDataService extends Service {
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],
           end_data_row_index: dataRowIndices.at(-1),
-          unspecified: block.type === this.DEFAULT_TYPE,
+          unspecified: block.type === this.UNSPECIFIED_TYPE,
         });
       });
     }
