@@ -3,6 +3,12 @@ import { assert } from "@vue/compiler-core";
 import Interval from "./../../Interval";
 
 class TableDataService extends Service {
+  DEFAULT_TYPE = "unspezifiziert";
+  _DEFAULT_TYPE_DATA = {
+    color: "#FFF",
+    labels: ["unbenannt", ""],
+  };
+
   _registeredRowKeys;
   _registeredRowTitles;
 
@@ -18,10 +24,15 @@ class TableDataService extends Service {
   _assignedBlocks = new Map(); // Die Zuordnung von Azubis zu Blöcken
   // z.B. ffarina: ["<Name>_<startDayOfYearIdx>-<endDayOfYearIdx>", ...]
 
-  constructor(dataHeaderRows) {
+  constructor(dataHeaderRows, types) {
     super();
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
+    this._registeredTypes = new Map();
+    this._registeredTypes.set(this.DEFAULT_TYPE, this._DEFAULT_TYPE_DATA);
+    types.forEach((entry) => {
+      this._registeredTypes.set(entry.type, entry.data);
+    });
   }
 
   _init() {}
@@ -35,8 +46,7 @@ class TableDataService extends Service {
   }
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
-  // Das individuelle Styling sowie Infos für die Generierung der classList-Einträge erfolgt über die renderData-Struktur.
-  importBlockData(name, startDate, endDate, renderData, rowKeys) {
+  importBlockData(startDate, endDate, type, rowKeys) {
     // Zunächst sind die Dates auf den jeweiligen dayOfYear-Index zu mappen
     const dayStructures =
       this._serviceRegister.tableStructureService.getEntityArrays()
@@ -47,7 +57,7 @@ class TableDataService extends Service {
     );
 
     if (!Number.isFinite(startDayOfYearIdx) || startDayOfYearIdx < 0) {
-      console.error(`invalid start-date: ${start_date}`);
+      console.error(`invalid start-date: ${startDate}`);
       return;
     }
 
@@ -56,17 +66,16 @@ class TableDataService extends Service {
     );
 
     if (!Number.isFinite(endDayOfYearIdx) || endDayOfYearIdx < 0) {
-      console.error(`invalid end-date: ${end_date}`);
+      console.error(`invalid end-date: ${endDate}`);
       return;
     }
 
     // Generiere eine BlockID und füge den Block hinzu
-    const blockId = `${name}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
+    const blockId = `${type}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
     const blockDataToSet = {
-      name,
       startDayOfYearIdx,
       endDayOfYearIdx,
-      renderData,
+      type,
     };
     this._blockData.set(blockId, blockDataToSet);
 
@@ -138,14 +147,16 @@ class TableDataService extends Service {
       //////////////////
       dataRowIndicesClusters.forEach((dataRowIndices) => {
         const block = this._blockData.get(blockId);
+        const blockData = this._registeredTypes.get(block.type);
+
         const row_key_list = dataRowIndices
           .map((i) => this._registeredRowKeys[i])
           .join("-");
         blockDataRenderObjects.push({
-          name: block.name,
           startDayOfYearIdx: block.startDayOfYearIdx,
           endDayOfYearIdx: block.endDayOfYearIdx,
-          renderData: block.renderData,
+          name: blockData.labels[0],
+          color: blockData.color,
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],
           end_data_row_index: dataRowIndices.at(-1),
@@ -172,8 +183,8 @@ class TableDataService extends Service {
     return blockDataIntervals;
   }
 }
-const createTableDataService = function (headerData) {
-  return new TableDataService(headerData);
+const createTableDataService = function (headerData, types) {
+  return new TableDataService(headerData, types);
 };
 
 export default createTableDataService;

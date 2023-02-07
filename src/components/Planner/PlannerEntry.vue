@@ -9,11 +9,10 @@ export default {
     };
   },
   props: {
-    rowKeys: Array,
     startDate: Date,
     endDate: Date,
-    color: String,
-    name: String,
+    type: String,
+    rowKeys: Array,
   },
   beforeCreate() {
     //console.log("PlannerEntry -- beforeCreate");
@@ -21,15 +20,9 @@ export default {
   created() {
     //console.log("PlannerEntry -- created");
     this.shared.serviceManager.tableDataService.importBlockData(
-      this.name,
       this.startDate,
       this.endDate,
-      {
-        style: {
-          color: this.color,
-        },
-        class: {},
-      },
+      this.type,
       this.rowKeys
     );
   },

@@ -314,15 +314,9 @@ class TableInteractionService extends Service {
         //console.log(`Selected rowKeys: ${selectedRowKeys.join(",")}`);
 
         this._serviceRegister.tableDataService.importBlockData(
-          "Test",
           startDay.date_object,
           endDay.date_object,
-          {
-            style: {
-              color: "#0A0",
-            },
-            class: {},
-          },
+          this._serviceRegister.tableDataService.DEFAULT_TYPE,
           this._getSelectedRowKeys()
         );
 

@@ -195,6 +195,7 @@ export default {
   props: {
     rows: Array,
     year: Number,
+    types: Array,
   },
   beforeCreate() {
     //console.log("Planner -- beforeCreate");
@@ -202,7 +203,7 @@ export default {
   created() {
     //console.log("Planner -- created");
     // Hier und nur hier wird der ServiceManager initialisiert
-    this.serviceManager = initServices(this.year, this.rows);
+    this.serviceManager = initServices(this.year, this.rows, this.types);
     this.shared.serviceManager = this.serviceManager;
   },
   beforeMount() {

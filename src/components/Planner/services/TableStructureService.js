@@ -510,8 +510,10 @@ class TableStructureService extends Service {
         style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
           block.end_data_row_index + this.HEADER_ROWS + 1
         }; grid-column: ${startColumn} / ${endColumn + 1}; background-color: ${
-          block.renderData.style.color
-        }; width: ${this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)}rem;`,
+          block.color
+        }; width: ${
+          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
+        }rem; white-space: nowrap;`,
       });
     });
     return blockDataRenderObjects;
