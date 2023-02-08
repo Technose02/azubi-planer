@@ -24,20 +24,7 @@ Bereich individuell und sehr intuitiv steuerbar entsteht
 
 
 == TODOs
-* PlannerStore komplett refaktorieren
-** Methoden geeigneter und othogonal
-** ES6-Klasse statt "Wildwuchs-Modul"
-* Aktuell ist der Datenfluss zwischen Planner und PlannerEntry unsauber über den PlannerStore realisiert - geht das auch anders?
-* Der Planner brauch zum korrekten Anzeigen der nicht geblockten Tage die Informationen aller Blöcke. Diese kommen aber erst durch die PlannerEntry-Items ins Spiel. Eigentlich sollte also der Planner erst nach "korrektem Einlesen aller PlannerEntries" gerendert werden, aber wie lauscht man auf sowas? Aktuell ist ein Dirty-Hack implementiert, der eine boolsche Variable (`render_planner_flag`) im PlannerStorage ändert sobald sich die Blockdaten geändert haben. Der Planner selber wird durch ein template-tag mit v-if gezwungen, bei Änderung an dieser Variablen zu rerendern
-* Gerade beim "Kollabieren/Erweitern" der KWs ist die Seite auffallend langsam. Viele der Methoden aus dem PlannerStore werden unnötig oft gerufen, und falls nicht unnötig oft, so zumindest mit unnötig oft wiederholter Intensität. Hier könnte zumindest durch angemessenes Cachen der Daten ein deutlicher Performance-Gewinn erreicht werden.
-Es sollte zunächst analysiert werden, welche Methoden wie oft bei dem "Kollabieren/Erweitern" einer Spalte gerufen werden (z.B. durch entsprechende Logausgaben). Dann sollte auch geklärt werden, ob und wenn ja welchen Einfluss die Anzahl der Zeilen (=Auszubildender) und die Anzahl der Blöcke haben.
-* Beim Kollabieren von KW-Headerfields ist noch nicht berücksichtigt/analysiert, welches Verhalten auftritt, wenn an einer KW mehrere Blöcke Beteiligt sind (Standard bei unterwöchig beginnenden/endenden Schulblöcken). Im Extremfall könnten bis zu sieben (wenn auch sehr kurze) Blöcke an einer KW beteiligt sein. Wie soll damit umgegangen werden?
-** Eine Möglichkeit wäre, bei KWs, an denen mehrere Blöcke beteiligt sind, ein Kollabieren zu verbieten. Das wäre einfach und einsehbar, hätte aber die Folge, dass gleich eine ganze Reihe von KWs (wie gesagt, bei Übergängen Schule-Betrieb ist das Standard), sich nicht kollabieren ließen
-** Verbieten nur bei der Beteiligung von mehr als zwei Blöcken (extrem selten und unwahrscheinlich), bei zwei Blöcken hälftig (links und rechts) einfärben (flexbox)
-* Gesetzliche Feiertage sowie Heiligabend und Silvester standardmäßig einfärben (oder als Blöcke durch Automatismus?)
-* Blöcke, die zu Zeilen definiert sind, die nicht alle zusammenhängen, automatisch in mehrere Blockdaten-Definitionen übersetzen und das "zusammenhängen" auch prüfen
-** die Kür wäre, wenn unterschiedliche Blöcke, die "zufällig" über mindestens zwei Zeilen zusammenhängen, automatisch verbunden würden
-* Verbesserung von Spacing und Sizing sowie Wrapping und Anpassung der Schriftgröße in Bezug auf den Platz - auch fehlt noch, dass "erkannt" wird, dass ein Block so kurz (in der Darstellung) ist, dass sein Name nicht komplett in der Box liegt. Dann sollte dieser automatisch gekürzt oder ganz weggelassen werden (Farbcode/Muster/Border muss repräsentativ sein!)
+* PlannerEntry ablösen: Planner ist einziger View, DatenIO über events
 * Interaktivität:
 ** Hinzufügen eines Blocks
 *** Ein links-Klick auf eine freie Zelle startet den Vorgang. Ab hier wird bei jeder Bewegung des auf ein freies Feld wird der eingeschlossene rechteckige Bereicht von Start-Feld zum Ist-Feld eingefärbt/eingerahmt o.Ä. - sofern alle eingeschlossenen Felder frei sind. Ist mindestens eines der Felder nicht frei, so erfolgt eine andere Art der Markierung.
@@ -55,4 +42,3 @@ Es sollte zunächst analysiert werden, welche Methoden wie oft bei dem "Kollabie
 
 == Issues
 
-* Bei Collapsed KW-Headerfields ist die Trennung der Month-Headerfields unschön, dass sollte angepasst werden. Trennung im Bereich der Box der "kollabierten" KW, in der sie auch tatsächlich stattfindet, wäre optimal
