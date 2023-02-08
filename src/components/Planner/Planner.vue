@@ -78,15 +78,7 @@
       ]"
       :style="d.style_"
     >
-      <div
-        style="
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          height: 100%;
-          width: 100%;
-        "
-      >
+      <div class="planner-header-row-day-container">
         <template v-if="d.display_text">
           <span class="planner-header-day-week">{{ d.day_of_week_str }}</span>
           <span class="planner-header-day-month">{{ d.day_of_month }}</span>
@@ -359,6 +351,14 @@ export default {
   background-color: #f7cac9;
   font-size: 1vw;
   display: block;
+}
+
+.planner-header-row-day-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+  width: 100%;
 }
 
 .planner-header-row-day.not-this-year {
