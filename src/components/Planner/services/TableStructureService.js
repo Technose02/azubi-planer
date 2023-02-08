@@ -505,14 +505,28 @@ class TableStructureService extends Service {
         this.HEADER_COLUMNS +
         dayOfYearToGridIntervalMapping[block.endDayOfYearIdx][1];
 
+      //////////////////////////////////// TODO: Funktionalität verallgemeinert in Utilities oder so auslagern
       // Wähle den Text so, dass er passt
       const availableWidthInRem =
         this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn);
       const cell = document.querySelector(".planner-block");
-      let label = block.labels[0];
+
+      const labelList = [...block.labels];
+      // dynamisch aus dem kleinsten Label weitere generische Kürzungen ableiten
+      // ...aus Label-Beginn mit angehängten "..."
+      const lastLabel = labelList.at(-1);
+      for (let k = 3; k < lastLabel.length; k++) {
+        labelList.push(`${lastLabel.slice(0, -k)}...`);
+      }
+      // ...aus dem ersten Buchstaben und nur einem .
+      labelList.push(lastLabel[0] + ".");
+      // ...und als Letze Möglichkeit nur den Anfangsbuchstaben (in groß)
+      labelList.push(lastLabel[0].toUpperCase());
+
+      let label = labelList[0];
       if (cell) {
         label = undefined;
-        for (let curLabel of block.labels) {
+        for (let curLabel of labelList) {
           const textWidthInRem = this._getWidthOfTextInRem(
             textTester,
             curLabel,
@@ -523,18 +537,14 @@ class TableStructureService extends Service {
             break;
           }
         }
-        // TODO
-        if (!label && block.labels.at(-1).length > 4) {
-          for (let k = block.labels.at(-1).length - 3; k >= 1; k--) {
-            label = `${block.labels.slice(0, k - 1)}...`;
-            console.log(label);
-          }
-          label = undefined;
-        }
+
+        // Wenn schließlich keine Passt (also wenige Platz als für "erster Buchstabe + ...")
+        // auf den Text komplett verzichten - die Farbe gibt ja auch etwas Aufschluss
         if (!label) {
           label = "";
         }
       }
+      ////////////////////////////////////
 
       blockDataRenderObjects.push({
         block_name: label,
