@@ -11,6 +11,7 @@ class TableDataService extends Service {
 
   _registeredRowKeys;
   _registeredRowTitles;
+  _registeredBlockTypes;
 
   // die Daten zu den Blöcken sind in einer Map organisiert. Ein Block hat eine ID, unter der er dort gelistet ist.
   // Ein Block kann mehreren Spalten zugeordnet sein (Abstrahierung über keys, nicht Row-Indizes!).
@@ -28,13 +29,13 @@ class TableDataService extends Service {
     super();
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
-    this._registeredTypes = new Map();
-    this._registeredTypes.set(
+    this._registeredBlockTypes = new Map();
+    this._registeredBlockTypes.set(
       this.UNSPECIFIED_TYPE,
       this._UNSPECIFIED_TYPE_DATA
     );
     types.forEach((entry) => {
-      this._registeredTypes.set(entry.type, entry.data);
+      this._registeredBlockTypes.set(entry.type, entry.data);
     });
   }
 
@@ -46,6 +47,18 @@ class TableDataService extends Service {
 
   getRegisteredRowTitles() {
     return this._registeredRowTitles;
+  }
+
+  getRegisteredBlockTypeEntries() {
+    const blockTypeEntries = [];
+    for (let [k, v] of this._registeredBlockTypes) {
+      blockTypeEntries.push({
+        type: k,
+        color: v.color,
+        label: v.labels[0],
+      });
+    }
+    return blockTypeEntries;
   }
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
@@ -85,6 +98,7 @@ class TableDataService extends Service {
     // Füge Zuordnungen gemäß rowKeys-Parameter ohne Duplikate hinzu
     const mappings = this._assignedBlocks.get(blockId) ?? [];
     this._assignedBlocks.set(blockId, [...new Set([...mappings, ...rowKeys])]);
+    return blockId;
   }
 
   // Gibt die vollständige Objekte der aktuell im Kalender gesetzten Blöcke zurück
@@ -149,12 +163,13 @@ class TableDataService extends Service {
       //////////////////
       dataRowIndicesClusters.forEach((dataRowIndices) => {
         const block = this._blockData.get(blockId);
-        const blockData = this._registeredTypes.get(block.type);
+        const blockData = this._registeredBlockTypes.get(block.type);
 
         const row_key_list = dataRowIndices
           .map((i) => this._registeredRowKeys[i])
           .join("-");
         blockDataRenderObjects.push({
+          id: blockId,
           startDayOfYearIdx: block.startDayOfYearIdx,
           endDayOfYearIdx: block.endDayOfYearIdx,
           labels: blockData.labels,

@@ -54,7 +54,8 @@ class TableInteractionService extends Service {
   _MOUSE_BUTTON_LEFT = 0;
   _MOUSE_BUTTON_RIGHT = 1;
   _INTERACTION_STATE_NOTHING = 10;
-  _INTERACTION_STATE_SELECTING = 11;
+  _INTERACTION_STATE_CREATE_SELECT = 11;
+  _INTERACTION_STATE_CREATE_CHOOSE_TYPE = 12;
 
   // State
   _interactionState = this._INTERACTION_STATE_NOTHING;
@@ -65,6 +66,7 @@ class TableInteractionService extends Service {
   _startRowKey = "";
   _curRowKey = "";
   _curSelectionInvalid = false;
+  _curBlockId = {};
 
   constructor() {
     super();
@@ -76,6 +78,53 @@ class TableInteractionService extends Service {
     return (
       event.x > headerCornerRect.right && event.y > headerCornerRect.bottom
     );
+  }
+
+  _calculateAbsolutArreaInPx(container) {
+    const { left: leftOffset, top: topOffset } =
+      container.getBoundingClientRect();
+
+    let [left0, right0] = this._getFieldBoundsByDayOfYearIdx(
+      this._startDayOfYearIdx
+    );
+    let [left1, right1] = this._getFieldBoundsByDayOfYearIdx(
+      this._curDayOfYearIdx
+    );
+
+    if (this._curDayOfYearIdx < this._startDayOfYearIdx) {
+      let tmp = left0;
+      left0 = left1;
+      left1 = tmp;
+      tmp = right0;
+      right0 = right1;
+      right1 = tmp;
+    }
+
+    if (this._startRowKey && this._curRowKey) {
+      let [top0, bottom0] = this._getFieldBoundsByRowKey(this._startRowKey);
+      let [top1, bottom1] = this._getFieldBoundsByRowKey(this._curRowKey);
+
+      if (top1 < top0) {
+        let tmp = top0;
+        top0 = top1;
+        top1 = tmp;
+        tmp = bottom0;
+        bottom0 = bottom1;
+        bottom1 = tmp;
+      }
+
+      return {
+        top: top0 - topOffset,
+        left: left0 - leftOffset,
+        right: right1 - leftOffset,
+        bottom: bottom1 - topOffset,
+      };
+    }
+
+    return {
+      left: left0 - leftOffset,
+      right: right1,
+    };
   }
 
   _getSelectedRowKeys() {
@@ -129,43 +178,44 @@ class TableInteractionService extends Service {
     }
   }
 
-  _updateVisualizer(container, visualizer) {
-    const { left: leftOffset, top: topOffset } =
-      container.getBoundingClientRect();
-
-    let [left0, right0] = this._getFieldBoundsByDayOfYearIdx(
-      this._startDayOfYearIdx
+  _updateBlockTypeMenu(container, blockTypeMenu) {
+    const element = document.querySelector(
+      `.planner-block--${this._curBlockId}`
     );
-    let [left1, right1] = this._getFieldBoundsByDayOfYearIdx(
-      this._curDayOfYearIdx
-    );
-
-    if (this._curDayOfYearIdx < this._startDayOfYearIdx) {
-      let tmp = left0;
-      left0 = left1;
-      left1 = tmp;
-      tmp = right0;
-      right0 = right1;
-      right1 = tmp;
-    }
-
-    if (this._startRowKey && this._curRowKey) {
-      let [top0, bottom0] = this._getFieldBoundsByRowKey(this._startRowKey);
-      let [top1, bottom1] = this._getFieldBoundsByRowKey(this._curRowKey);
-
-      if (top1 < top0) {
-        let tmp = top0;
-        top0 = top1;
-        top1 = tmp;
-        tmp = bottom0;
-        bottom0 = bottom1;
-        bottom1 = tmp;
+    if (element) {
+      console.log("identified data-block");
+      const bounds = element.getBoundingClientRect();
+      blockTypeMenu.style.top = `${bounds.top}rem`;
+      blockTypeMenu.style.left = `${bounds.right + 0.5}rem`;
+      // show / hide blockTypeMenu:
+      if (
+        this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+      ) {
+        blockTypeMenu.classList.remove("hidden");
+      } else {
       }
+    } else {
+      // Block wurde gerade importiert und kann noch nicht aus dem Document ermittelt werden
+      // Verwende infos
+      console.log(
+        "could not determine data-block, using internal data from creation-phase"
+      );
+      const blockArea = this._calculateAbsolutArreaInPx(container);
+      blockTypeMenu.style.top = `${blockArea.top}px`;
+      blockTypeMenu.style.left = `${blockArea.right + 5}px`;
 
-      visualizer.style.top = `${top0 - topOffset}px`;
-      visualizer.style.left = `${left0 - leftOffset}px`;
-      visualizer.style.width = `${right1 - left0}px`;
-      visualizer.style.height = `${bottom1 - top0}px`;
+      blockTypeMenu.classList.remove("hidden");
+      console.log(blockTypeMenu);
+    }
+  }
+
+  _updateVisualizer(container, visualizer) {
+    const area = this._calculateAbsolutArreaInPx(container);
+    if (Number.isFinite(area.top) && Number.isFinite(area.bottom)) {
+      visualizer.style.top = `${area.top}px`;
+      visualizer.style.left = `${area.left}px`;
+      visualizer.style.width = `${area.right - area.left}px`;
+      visualizer.style.height = `${area.bottom - area.top}px`;
 
       visualizer.style.backgroundColor = this._curSelectionInvalid
         ? "#B004"
@@ -173,7 +223,7 @@ class TableInteractionService extends Service {
     }
 
     // show / hide visualizer:
-    if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
+    if (this._interactionState === this._INTERACTION_STATE_CREATE_SELECT) {
       visualizer.classList.remove("hidden");
     } else {
       visualizer.classList.add("hidden");
@@ -181,7 +231,13 @@ class TableInteractionService extends Service {
   }
 
   // Technische Eventhandler Planner.vue
-  onPlannerContainerClick(event, container, visualizer, headerCorner) {
+  onPlannerContainerClick(
+    event,
+    container,
+    visualizer,
+    headerCorner,
+    blockTypeMenu
+  ) {
     const target_classList = event.target.classList;
     const headerCornerRect = Rect.fromRect(
       headerCorner.getBoundingClientRect()
@@ -193,6 +249,7 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
+        blockTypeMenu,
         this._MOUSE_BUTTON_LEFT
       );
     } else if (target_classList.contains("planner-header-row-week")) {
@@ -205,7 +262,13 @@ class TableInteractionService extends Service {
     }
     event.stopPropagation();
   }
-  onPlannerContainerContextMenu(event, container, visualizer, headerCorner) {
+  onPlannerContainerContextMenu(
+    event,
+    container,
+    visualizer,
+    headerCorner,
+    blockTypeMenu
+  ) {
     //event.preventDefault();
     const target_classList = event.target.classList;
     const headerCornerRect = Rect.fromRect(
@@ -218,6 +281,7 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
+        blockTypeMenu,
         this._MOUSE_BUTTON_RIGHT
       );
     } else if (target_classList.contains("planner-header-row-week")) {
@@ -230,14 +294,20 @@ class TableInteractionService extends Service {
     }
     event.stopPropagation();
   }
-  onPlannerContainerMouseMove(event, container, visualizer, headerCorner) {
+  onPlannerContainerMouseMove(
+    event,
+    container,
+    visualizer,
+    headerCorner,
+    blockTypeMenu
+  ) {
     const headerCornerRect = Rect.fromRect(
       headerCorner.getBoundingClientRect()
     );
 
     if (this._isInDataRange(event, headerCornerRect)) {
       // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
-      this.onDataCellRangeMove(event, container, visualizer);
+      this.onDataCellRangeMove(event, container, visualizer, blockTypeMenu);
     }
     event.stopPropagation();
   }
@@ -271,14 +341,14 @@ class TableInteractionService extends Service {
     visualizer.classList.add("hidden");
   }
 
-  onDataCellRangeClick(event, container, visualizer, button) {
+  onDataCellRangeClick(event, container, visualizer, blockTypeMenu, button) {
     const { x, y, target } = event;
     if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
       if (button === this._MOUSE_BUTTON_LEFT) {
         const cellInfo = this.getCellInfo(x, y, target);
         // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
         if (cellInfo) {
-          this._interactionState = this._INTERACTION_STATE_SELECTING;
+          this._interactionState = this._INTERACTION_STATE_CREATE_SELECT;
 
           [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
           [this._curRowKey, this._curDayOfYearIdx] = [
@@ -289,10 +359,12 @@ class TableInteractionService extends Service {
           this._updateVisualizer(container, visualizer);
         }
       }
-    } else if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
+    } else if (
+      this._interactionState === this._INTERACTION_STATE_CREATE_SELECT
+    ) {
       if (button === this._MOUSE_BUTTON_RIGHT) {
+        // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
         event.preventDefault();
-        // creating-data-state verlassen
         this._interactionState = this._INTERACTION_STATE_NOTHING;
         this._updateVisualizer(container, visualizer);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
@@ -312,25 +384,32 @@ class TableInteractionService extends Service {
           endDay = tmp;
         }
 
-        //console.log(
-        //  `Selected Time-Range: ${startDay.date_object} to ${endDay.date_object}`
-        //);
-        //console.log(`Selected rowKeys: ${selectedRowKeys.join(",")}`);
+        this._curBlockId =
+          this._serviceRegister.tableDataService.importBlockData(
+            startDay.date_object,
+            endDay.date_object,
+            this._serviceRegister.tableDataService.UNSPECIFIED_TYPE,
+            this._getSelectedRowKeys()
+          );
 
-        this._serviceRegister.tableDataService.importBlockData(
-          startDay.date_object,
-          endDay.date_object,
-          this._serviceRegister.tableDataService.UNSPECIFIED_TYPE,
-          this._getSelectedRowKeys()
-        );
-
+        this._interactionState = this._INTERACTION_STATE_CREATE_CHOOSE_TYPE;
         this._updateVisualizer(container, visualizer);
+        this._updateBlockTypeMenu(container, blockTypeMenu);
+      }
+    } else if (
+      this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+    ) {
+      if (button === this._MOUSE_BUTTON_RIGHT) {
+        // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
+        event.preventDefault();
+        this._interactionState = this._INTERACTION_STATE_NOTHING;
+        this._updateBlockTypeMenu(container, blockTypeMenu);
       }
     }
   }
 
-  onDataCellRangeMove(event, container, visualizer) {
-    if (this._interactionState === this._INTERACTION_STATE_SELECTING) {
+  onDataCellRangeMove(event, container, visualizer, blockTypeMenu) {
+    if (this._interactionState === this._INTERACTION_STATE_CREATE_SELECT) {
       const { x, y, target } = event;
       let cellElement = target;
 

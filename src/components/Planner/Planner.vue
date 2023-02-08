@@ -6,7 +6,8 @@
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner
+          this.$refs.headerCorner,
+          this.$refs.blockTypeMenu
         )
     "
     @contextmenu="
@@ -15,7 +16,8 @@
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner
+          this.$refs.headerCorner,
+          this.$refs.blockTypeMenu
         )
     "
     @mousemove="
@@ -24,7 +26,8 @@
           e,
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner
+          this.$refs.headerCorner,
+          this.$refs.blockTypeMenu
         )
     "
     ref="plannerContainer"
@@ -117,7 +120,7 @@
         'planner-cell',
         'data-cell',
         'planner-block',
-        b.block_name ? `planner-block--${b.block_name}` : '',
+        b.block_name ? `planner-block--${b.block_id}` : '',
         b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
         b.unspecified ? 'unspecified' : '',
       ]"
@@ -172,8 +175,21 @@
       ref="createBlockVisualizer"
       class="create-block-visualizer hidden"
     ></div>
+    <div class="planner-header-column text-tester" ref="textTester"></div>
+    <div class="menu menu--block-type hidden" ref="blockTypeMenu">
+      <template
+        v-for="t in this.serviceManager.tableDataService.getRegisteredBlockTypeEntries()"
+      >
+        <div
+          class="menu-item-block-type"
+          :class="`block-type--${t.type}`"
+          :style="`background-color: ${t.color};`"
+        >
+          {{ t.type }}
+        </div></template
+      >
+    </div>
   </div>
-  <div class="planner-header-column text-tester" ref="textTester"></div>
 </template>
 <script>
 import { store } from "./store.js";
@@ -401,5 +417,27 @@ export default {
   left: 0;
   width: 10rem;
   height: 5rem;
+}
+
+.menu--block-type {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 10rem;
+  max-height: 10rem;
+  gap: 0.3rem;
+  border-radius: 15%;
+  padding: 2rem 4rem;
+  background-color: #8298c0;
+}
+
+.menu-item-block-type {
+  padding: 0.4rem 0.8rem;
+  border: 0.1rem solid #555;
+  border-radius: 15%;
 }
 </style>

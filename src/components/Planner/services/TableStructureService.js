@@ -547,6 +547,7 @@ class TableStructureService extends Service {
       ////////////////////////////////////
 
       blockDataRenderObjects.push({
+        block_id: block.id,
         block_name: label,
         row_key_list: block.row_key_list,
         style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
