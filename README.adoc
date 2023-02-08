@@ -24,6 +24,7 @@ Bereich individuell und sehr intuitiv steuerbar entsteht
 
 
 == TODOs
+* TableInteractionService wird immer unübersichtlicher. Patterns anwenden um States und State-Transisions besser zu verwalten!
 * PlannerEntry ablösen: Planner ist einziger View, DatenIO über events
 * Interaktivität:
 ** Hinzufügen eines Blocks
