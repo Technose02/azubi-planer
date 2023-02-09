@@ -3,15 +3,17 @@ import { assert } from "@vue/compiler-core";
 import Interval from "./../../Interval";
 
 class TableDataService extends Service {
-  UNSPECIFIED_TYPE = "unspezifiziert";
+  _UNSPECIFIED_TYPE = "unspezifiziert";
   _UNSPECIFIED_TYPE_DATA = {
     color: "#FFF",
     labels: ["unspezifiziert"],
   };
 
+  _blockData;
   _registeredRowKeys;
   _registeredRowTitles;
   _registeredBlockTypes;
+  _assignedBlocks;
 
   // die Daten zu den Blöcken sind in einer Map organisiert. Ein Block hat eine ID, unter der er dort gelistet ist.
   // Ein Block kann mehreren Spalten zugeordnet sein (Abstrahierung über keys, nicht Row-Indizes!).
@@ -31,7 +33,7 @@ class TableDataService extends Service {
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
     this._registeredBlockTypes = new Map();
     this._registeredBlockTypes.set(
-      this.UNSPECIFIED_TYPE,
+      this._UNSPECIFIED_TYPE,
       this._UNSPECIFIED_TYPE_DATA
     );
     types.forEach((entry) => {
@@ -49,7 +51,7 @@ class TableDataService extends Service {
     return this._registeredRowTitles;
   }
 
-  getRegisteredBlockTypeEntries() {
+  getRegisteredBlockTypeEntriesForBlocktypeSelectionMenu() {
     const blockTypeEntries = [];
     for (let [k, v] of this._registeredBlockTypes) {
       blockTypeEntries.push({
@@ -58,7 +60,7 @@ class TableDataService extends Service {
         label: v.labels[0],
       });
     }
-    return blockTypeEntries;
+    return blockTypeEntries.filter((b) => b.type !== this._UNSPECIFIED_TYPE);
   }
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
@@ -99,6 +101,22 @@ class TableDataService extends Service {
     const mappings = this._assignedBlocks.get(blockId) ?? [];
     this._assignedBlocks.set(blockId, [...new Set([...mappings, ...rowKeys])]);
     return blockId;
+  }
+
+  // Setzt den BlockType eines vorhandenen Blocks gemäß Parameter
+  updateBlockType(blockId, blockType) {
+    assert(this._registeredBlockTypes.has(blockType));
+    const blockData = this._blockData.get(blockId);
+    assert(blockData);
+    blockData.type = blockType;
+  }
+
+  // Enfernt einen Block und die Zuordnung zu Datenzeilen
+  deleteBlock(blockId) {
+    if (this._blockData.has(blockId)) {
+      this._blockData.delete(blockId);
+      this._assignedBlocks.delete(blockId);
+    }
   }
 
   // Gibt die vollständige Objekte der aktuell im Kalender gesetzten Blöcke zurück
@@ -177,7 +195,7 @@ class TableDataService extends Service {
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],
           end_data_row_index: dataRowIndices.at(-1),
-          unspecified: block.type === this.UNSPECIFIED_TYPE,
+          unspecified: block.type === this._UNSPECIFIED_TYPE,
         });
       });
     }

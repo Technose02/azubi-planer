@@ -56,6 +56,8 @@ class TableInteractionService extends Service {
   _INTERACTION_STATE_NOTHING = 10;
   _INTERACTION_STATE_CREATE_SELECT = 11;
   _INTERACTION_STATE_CREATE_CHOOSE_TYPE = 12;
+  _INTERACTION_STATE_BLOCK_SELECTED = 13;
+  _INTERACTION_STATE_EDIT_CHOOSE_TYPE = 14;
 
   // State
   _interactionState = this._INTERACTION_STATE_NOTHING;
@@ -73,6 +75,13 @@ class TableInteractionService extends Service {
   }
 
   _init() {}
+
+  _updateInteractionState(newInteractionState) {
+    console.log(
+      `updating interaction state from ${this._interactionState} to ${newInteractionState}`
+    );
+    this._interactionState = newInteractionState;
+  }
 
   _isInDataRange(event, headerCornerRect) {
     return (
@@ -183,29 +192,51 @@ class TableInteractionService extends Service {
       `.planner-block--${this._curBlockId}`
     );
     if (element) {
-      console.log("identified data-block");
       const bounds = element.getBoundingClientRect();
-      blockTypeMenu.style.top = `${bounds.top}rem`;
-      blockTypeMenu.style.left = `${bounds.right + 0.5}rem`;
+      const offsets = container.getBoundingClientRect();
+      blockTypeMenu.style.top = `${bounds.top - offsets.top}px`;
+      blockTypeMenu.style.left = `${bounds.right - offsets.left}px`;
+      blockTypeMenu.style.transform = "translate(0%, -50%)";
+
       // show / hide blockTypeMenu:
       if (
-        this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+        this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE ||
+        this._interactionState === this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
       ) {
         blockTypeMenu.classList.remove("hidden");
       } else {
+        blockTypeMenu.classList.add("hidden");
       }
     } else {
       // Block wurde gerade importiert und kann noch nicht aus dem Document ermittelt werden
       // Verwende infos
-      console.log(
-        "could not determine data-block, using internal data from creation-phase"
-      );
       const blockArea = this._calculateAbsolutArreaInPx(container);
       blockTypeMenu.style.top = `${blockArea.top}px`;
       blockTypeMenu.style.left = `${blockArea.right + 5}px`;
+      blockTypeMenu.style.transform = "translate(0%, -50%)";
 
       blockTypeMenu.classList.remove("hidden");
-      console.log(blockTypeMenu);
+    }
+  }
+
+  _updateBlockContextMenu(container, blockContextMenu) {
+    if (this._interactionState === this._INTERACTION_STATE_BLOCK_SELECTED) {
+      const element = document.querySelector(
+        `.planner-block--${this._curBlockId}`
+      );
+      if (element) {
+        const bounds = element.getBoundingClientRect();
+        const offsets = container.getBoundingClientRect();
+        blockContextMenu.style.top = `${bounds.top - offsets.top}px`;
+        blockContextMenu.style.left = `${bounds.left - offsets.left}px`;
+        blockContextMenu.style.transform = "translate(-50%, -50%)";
+
+        blockContextMenu.classList.remove("hidden");
+      } else {
+        console.log(`error selecting block with id ${this._curBlockId}`);
+      }
+    } else {
+      blockContextMenu.classList.add("hidden");
     }
   }
 
@@ -236,6 +267,7 @@ class TableInteractionService extends Service {
     container,
     visualizer,
     headerCorner,
+    blockContextMenu,
     blockTypeMenu
   ) {
     const target_classList = event.target.classList;
@@ -249,6 +281,7 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
+        blockContextMenu,
         blockTypeMenu,
         this._MOUSE_BUTTON_LEFT
       );
@@ -267,6 +300,7 @@ class TableInteractionService extends Service {
     container,
     visualizer,
     headerCorner,
+    blockContextMenu,
     blockTypeMenu
   ) {
     //event.preventDefault();
@@ -281,6 +315,7 @@ class TableInteractionService extends Service {
         event,
         container,
         visualizer,
+        blockContextMenu,
         blockTypeMenu,
         this._MOUSE_BUTTON_RIGHT
       );
@@ -299,6 +334,7 @@ class TableInteractionService extends Service {
     container,
     visualizer,
     headerCorner,
+    blockContextMenu,
     blockTypeMenu
   ) {
     const headerCornerRect = Rect.fromRect(
@@ -307,7 +343,7 @@ class TableInteractionService extends Service {
 
     if (this._isInDataRange(event, headerCornerRect)) {
       // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
-      this.onDataCellRangeMove(event, container, visualizer, blockTypeMenu);
+      this.onDataCellRangeMove(event, container, visualizer, blockContextMenu);
     }
     event.stopPropagation();
   }
@@ -341,22 +377,41 @@ class TableInteractionService extends Service {
     visualizer.classList.add("hidden");
   }
 
-  onDataCellRangeClick(event, container, visualizer, blockTypeMenu, button) {
+  onDataCellRangeClick(
+    event,
+    container,
+    visualizer,
+    blockContextMenu,
+    blockTypeMenu,
+    button
+  ) {
     const { x, y, target } = event;
     if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
       if (button === this._MOUSE_BUTTON_LEFT) {
-        const cellInfo = this.getCellInfo(x, y, target);
-        // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
-        if (cellInfo) {
-          this._interactionState = this._INTERACTION_STATE_CREATE_SELECT;
+        if (
+          event.target.classList.contains("planner-block") &&
+          !event.target.classList.contains("unspecified")
+        ) {
+          this._curBlockId = Array.from(event.target.classList)
+            .filter((c) => c.startsWith("planner-block--"))
+            .flatMap((c) => c.split("--")[1])[0];
+          this._updateInteractionState(this._INTERACTION_STATE_BLOCK_SELECTED);
+          this._updateBlockContextMenu(container, blockContextMenu);
+        } else {
+          const cellInfo = this.getCellInfo(x, y, target);
+          // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
+          if (cellInfo) {
+            this._updateInteractionState(this._INTERACTION_STATE_CREATE_SELECT);
 
-          [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
-          [this._curRowKey, this._curDayOfYearIdx] = [
-            this._startRowKey,
-            this._startDayOfYearIdx,
-          ];
+            [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
+            [this._curRowKey, this._curDayOfYearIdx] = [
+              this._startRowKey,
+              this._startDayOfYearIdx,
+            ];
 
-          this._updateVisualizer(container, visualizer);
+            this._updateVisualizer(container, visualizer);
+            this._updateBlockContextMenu(container, blockContextMenu);
+          }
         }
       }
     } else if (
@@ -365,12 +420,12 @@ class TableInteractionService extends Service {
       if (button === this._MOUSE_BUTTON_RIGHT) {
         // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
         event.preventDefault();
-        this._interactionState = this._INTERACTION_STATE_NOTHING;
+        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
         this._updateVisualizer(container, visualizer);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
         // Wenn der ausgewählte Bereich ungültig ist: nichts machen!
         if (this._curSelectionInvalid) return;
-        this._interactionState = this._INTERACTION_STATE_NOTHING;
+        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
 
         // Informationen zusammentragen, neuen Block anlegen und selecting-state verlassen
         const dayStructures =
@@ -388,11 +443,13 @@ class TableInteractionService extends Service {
           this._serviceRegister.tableDataService.importBlockData(
             startDay.date_object,
             endDay.date_object,
-            this._serviceRegister.tableDataService.UNSPECIFIED_TYPE,
+            this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
             this._getSelectedRowKeys()
           );
 
-        this._interactionState = this._INTERACTION_STATE_CREATE_CHOOSE_TYPE;
+        this._updateInteractionState(
+          this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+        );
         this._updateVisualizer(container, visualizer);
         this._updateBlockTypeMenu(container, blockTypeMenu);
       }
@@ -402,13 +459,67 @@ class TableInteractionService extends Service {
       if (button === this._MOUSE_BUTTON_RIGHT) {
         // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
         event.preventDefault();
-        this._interactionState = this._INTERACTION_STATE_NOTHING;
+        // cancelling selection of type implies cancellation of block-creation at all
+        this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
         this._updateBlockTypeMenu(container, blockTypeMenu);
+      } else if (button === this._MOUSE_BUTTON_LEFT) {
+        if (event.target.classList.contains("menu-item-block-type")) {
+          const blockTypeToSet = Array.from(event.target.classList)
+            .filter((c) => c.startsWith("block-type--"))
+            .flatMap((c) => c.split("--")[1])[0];
+          if (blockTypeToSet) {
+            this._serviceRegister.tableDataService.updateBlockType(
+              this._curBlockId,
+              blockTypeToSet
+            );
+          }
+        } else {
+          // cancelling selection of type implies cancellation of block-creation at all
+          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        }
+        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
+        this._updateBlockTypeMenu(container, blockTypeMenu);
+      }
+    } else if (
+      this._interactionState === this._INTERACTION_STATE_BLOCK_SELECTED
+    ) {
+      if (button === this._MOUSE_BUTTON_RIGHT) {
+        event.preventDefault();
+        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
+        this._updateBlockContextMenu(container, blockContextMenu);
+      } else if (button === this._MOUSE_BUTTON_LEFT) {
+        if (event.target.classList.contains("action--delete")) {
+          // lösche eintrag
+          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+          this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
+          this._updateBlockContextMenu(container, blockContextMenu);
+        } else if (event.target.classList.contains("action--edit")) {
+          // TODO: switch to editblockstate
+          this._updateBlockContextMenu(container, blockContextMenu);
+          this._updateBlockTypeMenu(container, blockTypeMenu);
+        } else if (event.target.classList.contains("planner-block")) {
+          // click auf einen Daten-Block - ist es derselbe?
+          const block_id = Array.from(event.target.classList)
+            .filter((c) => c.startsWith("planner-block--"))
+            .flatMap((c) => c.split("--")[1])[0];
+          if (block_id === this._curBlockId) {
+            // click auf den bereits ausgewählten Block -> tue nichts!
+          } else {
+            // click auf einen anderen Datenblock -> bleib im State aber ändere die BlockID und aktualisiere die Menus
+            this._curBlockId = block_id;
+            this._updateBlockContextMenu(container, blockContextMenu);
+          }
+        } else {
+          // woanders hingeklickt -> zurück in state NOTHING
+          this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
+          this._updateBlockContextMenu(container, blockContextMenu);
+        }
       }
     }
   }
 
-  onDataCellRangeMove(event, container, visualizer, blockTypeMenu) {
+  onDataCellRangeMove(event, container, visualizer, blockContextMenu) {
     if (this._interactionState === this._INTERACTION_STATE_CREATE_SELECT) {
       const { x, y, target } = event;
       let cellElement = target;

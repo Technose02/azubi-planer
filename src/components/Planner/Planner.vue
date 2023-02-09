@@ -7,6 +7,7 @@
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
           this.$refs.headerCorner,
+          this.$refs.blockContextMenu,
           this.$refs.blockTypeMenu
         )
     "
@@ -17,6 +18,7 @@
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
           this.$refs.headerCorner,
+          this.$refs.blockContextMenu,
           this.$refs.blockTypeMenu
         )
     "
@@ -27,6 +29,7 @@
           this.$refs.plannerContainer,
           this.$refs.createBlockVisualizer,
           this.$refs.headerCorner,
+          this.$refs.blockContextMenu,
           this.$refs.blockTypeMenu
         )
     "
@@ -178,7 +181,7 @@
     <div class="planner-header-column text-tester" ref="textTester"></div>
     <div class="menu menu--block-type hidden" ref="blockTypeMenu">
       <template
-        v-for="t in this.serviceManager.tableDataService.getRegisteredBlockTypeEntries()"
+        v-for="t in this.serviceManager.tableDataService.getRegisteredBlockTypeEntriesForBlocktypeSelectionMenu()"
       >
         <div
           class="menu-item-block-type"
@@ -189,11 +192,21 @@
         </div></template
       >
     </div>
+    <div class="menu block-context-menu hidden" ref="blockContextMenu">
+      <icon-edit
+        class="menu-item block-context-menu-item block-context-menu-item--edit-block action--edit"
+      ></icon-edit>
+      <icon-delete
+        class="menu-item block-context-menu-item block-context-menu-item--delete-block action--delete"
+      ></icon-delete>
+    </div>
   </div>
 </template>
 <script>
 import { store } from "./store.js";
 import initServices from "./services/ServiceManager";
+import IconDelete from "../icons/IconDelete.vue";
+import IconEdit from "../icons/IconEdit.vue";
 
 export default {
   data() {
@@ -207,6 +220,10 @@ export default {
     rows: Array,
     year: Number,
     types: Array,
+  },
+  components: {
+    IconDelete,
+    IconEdit,
   },
   beforeCreate() {
     //console.log("Planner -- beforeCreate");
@@ -419,10 +436,38 @@ export default {
   height: 5rem;
 }
 
-.menu--block-type {
+.menu {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.block-context-menu {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background-color: #fffa;
+  border-radius: 15%;
+  padding: 0.2rem 0.4rem;
+  box-shadow: 0 0 0.4rem #000;
+  gap: 0.4rem;
+}
+
+.block-context-menu-item {
+  width: 2rem;
+  height: 2rem;
+  stroke: #888;
+  transition: transform 300ms;
+}
+
+.block-context-menu-item:hover {
+  width: 2rem;
+  height: 2rem;
+  color: #444;
+  transform: scale(1.2);
+}
+
+.menu--block-type {
   display: flex;
   flex-direction: column;
   align-items: stretch;
