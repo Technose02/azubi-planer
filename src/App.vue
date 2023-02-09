@@ -18,6 +18,13 @@
         :year="this.year"
         :types="[
           {
+            type: 'urlaub',
+            data: {
+              color: '#999',
+              labels: ['Urlaub'],
+            },
+          },
+          {
             type: 'anwendungsentwicklung',
             data: {
               color: '#0FF',
