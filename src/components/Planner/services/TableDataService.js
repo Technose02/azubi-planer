@@ -57,7 +57,7 @@ class TableDataService extends Service {
       blockTypeEntries.push({
         type: k,
         color: v.color,
-        label: v.labels[0],
+        labels: v.labels,
       });
     }
     return blockTypeEntries.filter((b) => b.type !== this._UNSPECIFIED_TYPE);

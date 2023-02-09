@@ -36,6 +36,56 @@ class TableStructureService extends Service {
     this.initializeTableStructure();
   }
 
+  _chooseLabelForAvailableWidth(
+    labels,
+    availableWidthInRem,
+    textTester,
+    refElementForFontsize
+  ) {
+    const labelList = [...labels];
+    // dynamisch aus dem kleinsten Label weitere generische Kürzungen ableiten
+    // ...aus Label-Beginn mit angehängten "..."
+    const lastLabel = labelList.at(-1);
+    for (let k = 3; k < lastLabel.length; k++) {
+      labelList.push(`${lastLabel.slice(0, -k)}...`);
+    }
+    // ...aus dem ersten Buchstaben und nur einem .
+    labelList.push(lastLabel[0] + ".");
+    // ...und als Letze Möglichkeit nur den Anfangsbuchstaben (in groß)
+    labelList.push(lastLabel[0].toUpperCase());
+
+    let label = labelList[0];
+    if (refElementForFontsize) {
+      const fontSizeInRem =
+        Number.parseFloat(
+          window
+            .getComputedStyle(refElementForFontsize, null)
+            .getPropertyValue("font-size")
+            .split("px")[0]
+        ) / 10.0;
+
+      label = undefined;
+      for (let curLabel of labelList) {
+        const textWidthInRem = this._getWidthOfTextInRem(
+          textTester,
+          curLabel,
+          `${fontSizeInRem}rem`
+        );
+        if (textWidthInRem <= availableWidthInRem) {
+          label = curLabel;
+          break;
+        }
+      }
+
+      // Wenn schließlich keine Passt (also wenige Platz als für "erster Buchstabe + ...")
+      // auf den Text komplett verzichten - die Farbe gibt ja auch etwas Aufschluss
+      if (!label) {
+        label = "";
+      }
+    }
+    return label;
+  }
+
   _getWidthOfTextInRem(textTester, text, fontSizeStyle) {
     if (!textTester) return undefined;
     textTester.style.fontSize = fontSizeStyle;
@@ -505,46 +555,22 @@ class TableStructureService extends Service {
         this.HEADER_COLUMNS +
         dayOfYearToGridIntervalMapping[block.endDayOfYearIdx][1];
 
-      //////////////////////////////////// TODO: Funktionalität verallgemeinert in Utilities oder so auslagern
-      // Wähle den Text so, dass er passt
+      //////
       const availableWidthInRem =
         this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn);
+
       const cell = document.querySelector(".planner-block");
 
-      const labelList = [...block.labels];
-      // dynamisch aus dem kleinsten Label weitere generische Kürzungen ableiten
-      // ...aus Label-Beginn mit angehängten "..."
-      const lastLabel = labelList.at(-1);
-      for (let k = 3; k < lastLabel.length; k++) {
-        labelList.push(`${lastLabel.slice(0, -k)}...`);
-      }
-      // ...aus dem ersten Buchstaben und nur einem .
-      labelList.push(lastLabel[0] + ".");
-      // ...und als Letze Möglichkeit nur den Anfangsbuchstaben (in groß)
-      labelList.push(lastLabel[0].toUpperCase());
+      let label = "";
 
-      let label = labelList[0];
       if (cell) {
-        label = undefined;
-        for (let curLabel of labelList) {
-          const textWidthInRem = this._getWidthOfTextInRem(
-            textTester,
-            curLabel,
-            cell.style.fontSize
-          );
-          if (textWidthInRem <= availableWidthInRem) {
-            label = curLabel;
-            break;
-          }
-        }
-
-        // Wenn schließlich keine Passt (also wenige Platz als für "erster Buchstabe + ...")
-        // auf den Text komplett verzichten - die Farbe gibt ja auch etwas Aufschluss
-        if (!label) {
-          label = "";
-        }
+        label = this._chooseLabelForAvailableWidth(
+          block.labels,
+          availableWidthInRem,
+          textTester,
+          cell
+        );
       }
-      ////////////////////////////////////
 
       blockDataRenderObjects.push({
         block_id: block.id,
@@ -606,6 +632,35 @@ class TableStructureService extends Service {
       })
     );
     return nonBlockedDayFillingObjects;
+  }
+
+  getBlockTypeEntriesForBlocktypeSelectionMenu(textTester, blockTypeMenu) {
+    if (blockTypeMenu) {
+      const { left, right } = blockTypeMenu.getBoundingClientRect();
+      const availableWidthInRem = (right - left) / 10;
+      const blockTypeEntriesForBlocktypeSelectionMenu = [];
+
+      const registeredBlockTypeEntriesForBlocktypeSelectionMenu =
+        this._serviceRegister.tableDataService.getRegisteredBlockTypeEntriesForBlocktypeSelectionMenu();
+
+      registeredBlockTypeEntriesForBlocktypeSelectionMenu.forEach((e) => {
+        const label = this._chooseLabelForAvailableWidth(
+          e.labels,
+          availableWidthInRem,
+          textTester,
+          blockTypeMenu
+        );
+
+        blockTypeEntriesForBlocktypeSelectionMenu.push({
+          type: e.type,
+          color: e.color,
+          label,
+        });
+      });
+
+      return blockTypeEntriesForBlocktypeSelectionMenu;
+    }
+    return [];
   }
 }
 

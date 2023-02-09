@@ -179,16 +179,25 @@
       class="create-block-visualizer hidden"
     ></div>
     <div class="planner-header-column text-tester" ref="textTester"></div>
-    <div class="menu menu--block-type hidden" ref="blockTypeMenu">
+    <div
+      v-if="
+        this.serviceManager.tableInteractionService._interactionState >= 0 // forces update of list
+      "
+      class="menu menu--block-type hidden"
+      ref="blockTypeMenu"
+    >
       <template
-        v-for="t in this.serviceManager.tableDataService.getRegisteredBlockTypeEntriesForBlocktypeSelectionMenu()"
+        v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu(
+          this.$refs.textTester,
+          this.$refs.blockTypeMenu
+        )"
       >
         <div
           class="menu-item-block-type"
           :class="`block-type--${t.type}`"
           :style="`background-color: ${t.color};`"
         >
-          {{ t.type }}
+          {{ t.label }}
         </div></template
       >
     </div>
@@ -440,16 +449,16 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
+  background-color: #fffa;
+  border-radius: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 0 0.4rem #000;
 }
 
 .block-context-menu {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  background-color: #fffa;
-  border-radius: 15%;
-  padding: 0.2rem 0.4rem;
-  box-shadow: 0 0 0.4rem #000;
   gap: 0.4rem;
 }
 
@@ -468,21 +477,22 @@ export default {
 }
 
 .menu--block-type {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  width: 10rem;
-  max-height: 10rem;
+  display: grid;
+  grid-template-columns: 20rem;
+  row-gap: 0.3rem;
+  justify-content: stretch;
+  align-content: stretch;
+  justify-items: stretch;
+  align-items: flex-start;
   gap: 0.3rem;
-  border-radius: 15%;
-  padding: 2rem 4rem;
-  background-color: #8298c0;
+  width: auto;
+  font-size: 1.6rem;
+  max-height: 30rem;
 }
 
 .menu-item-block-type {
   padding: 0.4rem 0.8rem;
   border: 0.1rem solid #555;
-  border-radius: 15%;
+  border-radius: 5%;
 }
 </style>

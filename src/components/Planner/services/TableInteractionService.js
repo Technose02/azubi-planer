@@ -136,6 +136,18 @@ class TableInteractionService extends Service {
     };
   }
 
+  _getIdOfSelectedPlannerBlock(element) {
+    return Array.from(element.classList)
+      .filter((c) => c.startsWith("planner-block--"))
+      .flatMap((c) => c.split("--")[1])[0];
+  }
+
+  _getTypeOfSelectedBlockTypeMenuItem(element) {
+    return Array.from(element.classList)
+      .filter((c) => c.startsWith("block-type--"))
+      .flatMap((c) => c.split("--")[1])[0];
+  }
+
   _getSelectedRowKeys() {
     const registeredRowKeys =
       this._serviceRegister.tableDataService.getRegisteredRowKeys();
@@ -392,9 +404,7 @@ class TableInteractionService extends Service {
           event.target.classList.contains("planner-block") &&
           !event.target.classList.contains("unspecified")
         ) {
-          this._curBlockId = Array.from(event.target.classList)
-            .filter((c) => c.startsWith("planner-block--"))
-            .flatMap((c) => c.split("--")[1])[0];
+          this._curBlockId = this._getIdOfSelectedPlannerBlock(event.target);
           this._updateInteractionState(this._INTERACTION_STATE_BLOCK_SELECTED);
           this._updateBlockContextMenu(container, blockContextMenu);
         } else {
@@ -454,27 +464,33 @@ class TableInteractionService extends Service {
         this._updateBlockTypeMenu(container, blockTypeMenu);
       }
     } else if (
-      this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+      this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE ||
+      this._interactionState === this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
     ) {
       if (button === this._MOUSE_BUTTON_RIGHT) {
         // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
         event.preventDefault();
-        // cancelling selection of type implies cancellation of block-creation at all
-        this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        if (
+          this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+        ) {
+          // cancelling selection of type implies cancellation of block-creation at all
+          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        }
         this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
         this._updateBlockTypeMenu(container, blockTypeMenu);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
-        if (event.target.classList.contains("menu-item-block-type")) {
-          const blockTypeToSet = Array.from(event.target.classList)
-            .filter((c) => c.startsWith("block-type--"))
-            .flatMap((c) => c.split("--")[1])[0];
+        if (target.classList.contains("menu-item-block-type")) {
+          const blockTypeToSet =
+            this._getTypeOfSelectedBlockTypeMenuItem(target);
           if (blockTypeToSet) {
             this._serviceRegister.tableDataService.updateBlockType(
               this._curBlockId,
               blockTypeToSet
             );
           }
-        } else {
+        } else if (
+          this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
+        ) {
           // cancelling selection of type implies cancellation of block-creation at all
           this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
         }
@@ -489,20 +505,20 @@ class TableInteractionService extends Service {
         this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
         this._updateBlockContextMenu(container, blockContextMenu);
       } else if (button === this._MOUSE_BUTTON_LEFT) {
-        if (event.target.classList.contains("action--delete")) {
+        if (target.classList.contains("action--delete")) {
           // lösche eintrag
           this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
           this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
           this._updateBlockContextMenu(container, blockContextMenu);
-        } else if (event.target.classList.contains("action--edit")) {
-          // TODO: switch to editblockstate
+        } else if (target.classList.contains("action--edit")) {
+          this._updateInteractionState(
+            this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
+          );
           this._updateBlockContextMenu(container, blockContextMenu);
           this._updateBlockTypeMenu(container, blockTypeMenu);
-        } else if (event.target.classList.contains("planner-block")) {
+        } else if (target.classList.contains("planner-block")) {
           // click auf einen Daten-Block - ist es derselbe?
-          const block_id = Array.from(event.target.classList)
-            .filter((c) => c.startsWith("planner-block--"))
-            .flatMap((c) => c.split("--")[1])[0];
+          const block_id = this._getIdOfSelectedPlannerBlock(target);
           if (block_id === this._curBlockId) {
             // click auf den bereits ausgewählten Block -> tue nichts!
           } else {
