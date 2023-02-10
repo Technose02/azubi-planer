@@ -84,10 +84,12 @@ class TableInteractionService extends Service {
         const block_id = this._getIdOfSelectedPlannerBlock(event.target);
         if (block_id === this._curBlockId) {
           // click auf den bereits ausgewählten Block -> tue nichts!
+          this._contextMenuReferencePoint = { x: event.x, y: event.y };
           return this._stateBlockSelected;
         } else {
           // click auf einen anderen Datenblock -> bleib im State aber ändere die BlockID und aktualisiere die Menus
           this._curBlockId = block_id;
+          this._contextMenuReferencePoint = { x: event.x, y: event.y };
           return this._stateBlockSelected;
         }
       } else {
@@ -112,15 +114,36 @@ class TableInteractionService extends Service {
       );
       if (element) {
         const bounds = element.getBoundingClientRect();
+        const menuBounds =
+          this._widgets.blockContextMenu.getBoundingClientRect();
         const offsets = this._widgets.container.getBoundingClientRect();
         this._widgets.blockContextMenu.style.top = `${
           bounds.top - offsets.top
         }px`;
-        this._widgets.blockContextMenu.style.left = `${
-          bounds.left - offsets.left
-        }px`;
-        this._widgets.blockContextMenu.style.transform =
-          "translate(-50%, -50%)";
+        //this._widgets.blockContextMenu.style.left = `${
+        //  bounds.left - offsets.left
+        //}px`;
+        //this._widgets.blockContextMenu.style.transform =
+        //  "translate(-50%, -50%)";
+
+        const { x: refX, y: refY } = this._contextMenuReferencePoint;
+        let left = refX - menuBounds.right + menuBounds.left - 5;
+        let right;
+        const { spaceToTheLeftRem, spaceToTheRightRem } =
+          this._getAvailableSpaceAroundPointInContainer(refX, refY);
+        if (left <= spaceToTheLeftRem) {
+          left = refX + 5;
+          right = left + menuBounds.right - menuBounds.left;
+          if (right > spaceToTheRightRem) {
+            console.error(
+              "fatal: the viewport is too small for to display the contextmenu accurately..."
+            );
+          } else {
+            this._widgets.blockContextMenu.style.right = `${right}px`;
+          }
+        } else {
+          this._widgets.blockContextMenu.style.left = `${left}px`;
+        }
 
         this._widgets.blockContextMenu.classList.remove("hidden");
       } else {
@@ -386,11 +409,24 @@ class TableInteractionService extends Service {
   _curSelectionInvalid = false;
   _curBlockId = {};
   _hideVisualizerOverride = false;
+  _contextMenuReferencePoint = {
+    x: -1,
+    y: -1,
+  };
 
   _currentState = this._stateIdle;
   //// INTERNAL STATE
 
   //// HELPERS
+  _getAvailableSpaceAroundPointInContainer(x, y) {
+    const { left, right } = this._widgets.container.getBoundingClientRect();
+    const spaceToTheLeftRem = (x - left) / 10;
+    const spaceToTheRightRem = (right - y) / 10;
+    return {
+      spaceToTheLeftRem,
+      spaceToTheRightRem,
+    };
+  }
   _calculateAbsolutArreaInPx() {
     const { left: leftOffset, top: topOffset } =
       this._widgets.container.getBoundingClientRect();
@@ -501,6 +537,7 @@ class TableInteractionService extends Service {
       !target.classList.contains("unspecified")
     ) {
       this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
+      this._contextMenuReferencePoint = { x: event.x, y: event.y };
       return this._stateBlockSelected;
     } else if (inDataRange) {
       const cellInfo = this.getCellInfo(x, y, target);
