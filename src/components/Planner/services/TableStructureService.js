@@ -24,6 +24,13 @@ class TableStructureService extends Service {
 
   _year;
 
+  // Zum testen von Abmessungen von Text-Blöcken
+  _textTesterWidget;
+  // Zu rufen aus Planner.vue
+  setTextTesterWidget(textTesterWidget) {
+    this._textTesterWidget = textTesterWidget;
+  }
+
   constructor(year) {
     //console.log(`TableStructureService::constructor`);
     super();
@@ -39,7 +46,6 @@ class TableStructureService extends Service {
   _chooseLabelForAvailableWidth(
     labels,
     availableWidthInRem,
-    textTester,
     refElementForFontsize
   ) {
     const labelList = [...labels];
@@ -67,7 +73,6 @@ class TableStructureService extends Service {
       label = undefined;
       for (let curLabel of labelList) {
         const textWidthInRem = this._getWidthOfTextInRem(
-          textTester,
           curLabel,
           `${fontSizeInRem}rem`
         );
@@ -86,11 +91,11 @@ class TableStructureService extends Service {
     return label;
   }
 
-  _getWidthOfTextInRem(textTester, text, fontSizeStyle) {
-    if (!textTester) return undefined;
-    textTester.style.fontSize = fontSizeStyle;
-    textTester.innerHTML = text;
-    return textTester.clientWidth * 0.105; // Skalieren mit 1.05 und dann Teilen durch 10 wegen px->rem
+  _getWidthOfTextInRem(text, fontSizeStyle) {
+    if (!this._textTesterWidget) return undefined;
+    this._textTesterWidget.style.fontSize = fontSizeStyle;
+    this._textTesterWidget.innerHTML = text;
+    return this._textTesterWidget.clientWidth * 0.105; // Skalieren mit 1.05 und dann Teilen durch 10 wegen px->rem
   }
 
   _createGridAssistant() {
@@ -518,17 +523,19 @@ class TableStructureService extends Service {
     return rows;
   }
 
-  getDataHeaderColumnObjects(textTester) {
+  getDataHeaderColumnObjects() {
     // Lazy-Loading-Pattern
     let dataHeaderColumnObjects =
       this._serviceRegister.cacheService.restoreDataHeaderColumnObjectsForTextTesterElement(
-        textTester
+        this._textTesterWidget
       );
     if (!dataHeaderColumnObjects) {
-      dataHeaderColumnObjects = this._createDataHeaderColumnObjects(textTester);
+      dataHeaderColumnObjects = this._createDataHeaderColumnObjects(
+        this._textTesterWidget
+      );
 
       this._serviceRegister.cacheService.saveDataHeaderColumnObjectsForTextTesterElement(
-        textTester,
+        this._textTesterWidget,
         dataHeaderColumnObjects
       );
     }
@@ -536,8 +543,8 @@ class TableStructureService extends Service {
   }
 
   //// Erzeugt die Strukturen, die die Template des Planners zum darstellen der Blöcke verwendet
-  getBlockDataRenderObjects(textTester) {
-    //console.log(`TableStructureService::getBlockDataRenderObjects()`);
+  getBlockDataRenderObjects() {
+    // console.log(`TableStructureService::getBlockDataRenderObjects()`);
 
     const blockDataRenderObjects = [];
 
@@ -567,7 +574,6 @@ class TableStructureService extends Service {
         label = this._chooseLabelForAvailableWidth(
           block.labels,
           availableWidthInRem,
-          textTester,
           cell
         );
       }
@@ -634,7 +640,7 @@ class TableStructureService extends Service {
     return nonBlockedDayFillingObjects;
   }
 
-  getBlockTypeEntriesForBlocktypeSelectionMenu(textTester, blockTypeMenu) {
+  getBlockTypeEntriesForBlocktypeSelectionMenu(blockTypeMenu) {
     if (blockTypeMenu) {
       const { left, right } = blockTypeMenu.getBoundingClientRect();
       const availableWidthInRem = (right - left) / 10;
@@ -647,7 +653,6 @@ class TableStructureService extends Service {
         const label = this._chooseLabelForAvailableWidth(
           e.labels,
           availableWidthInRem,
-          textTester,
           blockTypeMenu
         );
 
