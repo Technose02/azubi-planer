@@ -43,6 +43,10 @@ class TableDataService extends Service {
 
   _init() {}
 
+  setUnspecifiedTypeDataColor(unspecifiedTypeDataColor) {
+    this._UNSPECIFIED_TYPE_DATA.color = unspecifiedTypeDataColor;
+  }
+
   getRegisteredRowKeys() {
     return this._registeredRowKeys;
   }

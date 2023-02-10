@@ -45,6 +45,13 @@ class TableInteractionService extends Service {
   }
   //// WIDGETS
 
+  //// PROPERTIES
+  setSelectionColors(colorSelectionValid, colorSelectionInvalid) {
+    this._colorSelectionValid = colorSelectionValid;
+    this._colorSelectionInvalid = colorSelectionInvalid;
+  }
+  //// PROPERTIES
+
   //// INTERACTION STATES (gemäß State-Pattern)
   _stateIdle = {
     name: () => "stateIdle",
@@ -277,8 +284,8 @@ class TableInteractionService extends Service {
 
         this._widgets.visualizer.style.backgroundColor = this
           ._curSelectionInvalid
-          ? "#B004"
-          : "#0B03";
+          ? this._colorSelectionInvalid
+          : this._colorSelectionValid;
       }
       if (this._hideVisualizerOverride) {
         this._widgets.visualizer.classList.add("hidden");
@@ -413,6 +420,8 @@ class TableInteractionService extends Service {
     x: -1,
     y: -1,
   };
+  _colorSelectionValid = "#FFF";
+  _colorSelectionInvalid = "#000";
 
   _currentState = this._stateIdle;
   //// INTERNAL STATE

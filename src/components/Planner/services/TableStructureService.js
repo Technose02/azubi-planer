@@ -663,7 +663,10 @@ class TableStructureService extends Service {
         });
       });
 
-      return blockTypeEntriesForBlocktypeSelectionMenu;
+      return blockTypeEntriesForBlocktypeSelectionMenu.sort((a, b) => {
+        if (a.label.toLowerCase() == b.label.toLowerCase()) return 0;
+        return a.label.toLowerCase() < b.label.toLowerCase() ? -1 : 1;
+      });
     }
     return [];
   }

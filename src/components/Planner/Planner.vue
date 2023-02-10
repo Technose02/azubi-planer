@@ -1,7 +1,5 @@
 <template>
-  <h1 v-if="this.UPDATE_UI_HANDLE === 0">NOPE</h1>
   <div
-    v-else
     @click="this.serviceManager.tableInteractionService.onPlannerContainerClick"
     @contextmenu="
       this.serviceManager.tableInteractionService.onPlannerContainerContextMenu
@@ -190,7 +188,6 @@ import IconEdit from "../icons/IconEdit.vue";
 export default {
   data() {
     return {
-      UPDATE_UI_HANDLE: 1,
       serviceManager: [],
       shared: store,
     };
@@ -200,6 +197,8 @@ export default {
     rows: Array,
     year: Number,
     types: Array,
+    selectionColorValid: String,
+    selectionColorInvalid: String,
   },
   components: {
     IconDelete,
@@ -222,7 +221,6 @@ export default {
   },
   mounted() {
     //console.log("Planner -- mounted");
-    this.serviceManager.UPDATE_UI_HANDLE = this.UPDATE_UI_HANDLE;
     this.serviceManager.tableInteractionService.setWidgets(
       this.$refs.plannerContainer,
       this.$refs.headerCorner,
@@ -230,8 +228,15 @@ export default {
       this.$refs.blockContextMenu,
       this.$refs.blockTypeMenu
     );
+    this.serviceManager.tableInteractionService.setSelectionColors(
+      this.selectionColorValid,
+      this.selectionColorInvalid
+    ); //"#0B03", "#B004"
     this.serviceManager.tableStructureService.setTextTesterWidget(
       this.$refs.textTester
+    );
+    this.serviceManager.tableDataService.setUnspecifiedTypeDataColor(
+      this.selectionColorValid
     );
   },
   beforeUpdate() {
@@ -272,52 +277,52 @@ export default {
 
 .planner-header-row-month--1 {
   /* Januar */
-  background-color: #4424d6;
+  background-color: #4424d688;
 }
 
 .planner-header-row-month--2 {
-  background-color: #0247fe;
+  background-color: #0247fe88;
 }
 
 .planner-header-row-month--3 {
-  background-color: #347c98;
+  background-color: #347c9888;
 }
 
 .planner-header-row-month--4 {
-  background-color: #66b032;
+  background-color: #66b03288;
 }
 
 .planner-header-row-month--5 {
-  background-color: #b2d732;
+  background-color: #b2d73288;
 }
 
 .planner-header-row-month--6 {
-  background-color: #fefe33;
+  background-color: #fefe3388;
 }
 
 .planner-header-row-month--7 {
-  background-color: #fccc1a;
+  background-color: #fccc1a88;
 }
 
 .planner-header-row-month--8 {
-  background-color: #fb9902;
+  background-color: #fb990288;
 }
 
 .planner-header-row-month--9 {
-  background-color: #fc600a;
+  background-color: #fc600a88;
 }
 
 .planner-header-row-month--10 {
-  background-color: #fe2712;
+  background-color: #fe271288;
 }
 
 .planner-header-row-month--11 {
-  background-color: #c21460;
+  background-color: #c2146088;
 }
 
 .planner-header-row-month--12 {
   /* Dezember */
-  background-color: #8601af;
+  background-color: #8601af88;
 }
 
 .planner-header-row-week {
@@ -331,17 +336,17 @@ export default {
 }
 
 .data-cell {
-  background-color: #f3e0be;
+  background-color: #fff;
 }
 
 .planner-header-corner {
-  background-color: #ff6f61;
+  background-color: #efefef;
   border-left: 0.1rem solid black;
   border-top: 0.1rem solid black;
 }
 
 .planner-header-column {
-  background-color: #f7cac9;
+  background-color: #efefef;
   grid-column: 1;
   border-left: 0.1rem solid black;
   font-size: 1.8rem;
@@ -363,19 +368,19 @@ export default {
 
 .planner-header-row-week {
   grid-row: 2;
-  background-color: #92a8d1;
+  background-color: #dfdfdf;
   font-size: 1.8rem;
 }
 
 .planner-header-row-week.collapsed {
   grid-row: 2;
-  background-color: #8298c0;
+  background-color: #cfcfcf;
   font-size: 1.8rem;
 }
 
 .planner-header-row-day {
   grid-row: 3;
-  background-color: #f7cac9;
+  background-color: #efefef;
   font-size: 1vw;
   display: block;
 }
@@ -473,6 +478,7 @@ export default {
   width: auto;
   font-size: 1.6rem;
   max-height: 30rem;
+  overflow-y: scroll;
 }
 
 .menu-item-block-type {
