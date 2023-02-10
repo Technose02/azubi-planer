@@ -5,22 +5,6 @@ class TableInteractionService extends Service {
   // Interne Konstanten
   _MOUSE_BUTTON_LEFT = 0;
   _MOUSE_BUTTON_RIGHT = 1;
-  _INTERACTION_STATE_NOTHING = 10;
-  _INTERACTION_STATE_CREATE_SELECT = 11;
-  _INTERACTION_STATE_CREATE_CHOOSE_TYPE = 12;
-  _INTERACTION_STATE_BLOCK_SELECTED = 13;
-  _INTERACTION_STATE_EDIT_CHOOSE_TYPE = 14;
-
-  // State
-  _interactionState = this._INTERACTION_STATE_NOTHING;
-
-  //  _selectionStartCell = {};
-  _startDayOfYearIdx = -1;
-  _curDayOfYearIdx = -1;
-  _startRowKey = "";
-  _curRowKey = "";
-  _curSelectionInvalid = false;
-  _curBlockId = {};
 
   constructor() {
     super();
@@ -28,22 +12,388 @@ class TableInteractionService extends Service {
 
   _init() {}
 
-  _updateInteractionState(newInteractionState) {
-    console.log(
-      `updating interaction state from ${this._interactionState} to ${newInteractionState}`
-    );
-    this._interactionState = newInteractionState;
+  //// WIDGETS
+  _widgets = {
+    container: {},
+    headerCorner: {},
+    visualizer: {},
+    blockContextMenu: {},
+    blockTypeMenu: {},
+  };
+
+  // forceUpdateHandle (Zu rufen aus Planner.vue)
+  _forceUpdateViewHandle = {};
+  setForceUpdate(forceUpdateViewHandle) {
+    this._forceUpdateViewHandle = forceUpdateViewHandle;
   }
 
-  _isInDataRange(event, headerCorner) {
-    const { x, y } = event;
-    const { right, bottom } = headerCorner.getBoundingClientRect();
-    return x > right && y > bottom;
+  // Zu rufen aus Planner.vue, sobald Document bereit
+  setWidgets(
+    container,
+    headerCorner,
+    visualizer,
+    blockContextMenu,
+    blockTypeMenu
+  ) {
+    this._widgets = {
+      container,
+      headerCorner,
+      visualizer,
+      blockContextMenu,
+      blockTypeMenu,
+    };
   }
+  //// WIDGETS
 
-  _calculateAbsolutArreaInPx(container) {
+  //// INTERACTION STATES (gemäß State-Pattern)
+  _stateIdle = {
+    name: () => "stateIdle",
+    onLeftClick: (event, inDataRange, weekHeaderField) => {
+      return this._leftClickIdle(event, inDataRange, weekHeaderField);
+    },
+    onRightClick: (event, inDataRange, weekHeaderField) => {
+      return this._stateIdle;
+    },
+    onMouseMove: (event, inDataRange) => {
+      return this._stateIdle;
+    },
+    updateWidgets: () => {
+      // Visualizer
+      this._widgets.visualizer.classList.add("hidden");
+
+      // BlockContextMenu
+      this._widgets.blockContextMenu.classList.add("hidden");
+
+      // BlockTypeMenu
+      this._widgets.blockTypeMenu.classList.add("hidden");
+    },
+  };
+
+  _stateBlockSelected = {
+    name: () => "stateBlockSelected",
+    onLeftClick: (event, inDataRange, weekHeaderField) => {
+      if (event.target.classList.contains("action--delete")) {
+        // lösche eintrag
+        this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        this._forceUpdateViewHandle();
+        return this._stateIdle;
+      } else if (event.target.classList.contains("action--edit")) {
+        return this._stateChooseBlockTypeForEdit;
+      } else if (event.target.classList.contains("planner-block")) {
+        // click auf einen Daten-Block - ist es derselbe?
+        const block_id = this._getIdOfSelectedPlannerBlock(event.target);
+        if (block_id === this._curBlockId) {
+          // click auf den bereits ausgewählten Block -> tue nichts!
+          return this._stateBlockSelected;
+        } else {
+          // click auf einen anderen Datenblock -> bleib im State aber ändere die BlockID und aktualisiere die Menus
+          this._curBlockId = block_id;
+          return this._stateBlockSelected;
+        }
+      } else {
+        // woanders hingeklickt
+        return this._leftClickIdle(event, inDataRange, weekHeaderField);
+      }
+    },
+    onRightClick: (event, inDataRange, weekHeaderField) => {
+      event.preventDefault();
+      return this._stateIdle;
+    },
+    onMouseMove: (event, inDataRange) => {
+      return this._stateBlockSelected;
+    },
+    updateWidgets: () => {
+      // Visualizer
+      this._widgets.visualizer.classList.add("hidden");
+
+      // BlockContextMenu
+      const element = document.querySelector(
+        `.planner-block--${this._curBlockId}`
+      );
+      if (element) {
+        const bounds = element.getBoundingClientRect();
+        const offsets = this._widgets.container.getBoundingClientRect();
+        this._widgets.blockContextMenu.style.top = `${
+          bounds.top - offsets.top
+        }px`;
+        this._widgets.blockContextMenu.style.left = `${
+          bounds.left - offsets.left
+        }px`;
+        this._widgets.blockContextMenu.style.transform =
+          "translate(-50%, -50%)";
+
+        this._widgets.blockContextMenu.classList.remove("hidden");
+      } else {
+        console.log(`error selecting block with id ${this._curBlockId}`);
+        this._widgets.blockContextMenu.classList.add("hidden");
+      }
+
+      // BlockTypeMenu
+      this._widgets.blockTypeMenu.classList.add("hidden");
+    },
+  };
+
+  _stateSelectForCreate = {
+    name: () => "stateSelectForCreate",
+    onLeftClick: (event, inDataRange, weekHeaderField) => {
+      if (weekHeaderField) {
+        this._toggleWeekHeaderFieldCollapseState(event);
+        return this._stateSelectForCreate;
+      }
+
+      // Wenn der ausgewählte Bereich ungültig ist: nichts machen!
+      if (this._curSelectionInvalid) {
+        return this._stateSelectForCreate;
+      }
+
+      // Ansonsten: Ausgewählten Bereich übernehmen und entsprechenden Datenblock importieren
+      const dayStructures =
+        this._serviceRegister.tableStructureService.getEntityArrays()
+          .dayStructures;
+      let startDay = dayStructures[this._startDayOfYearIdx];
+      let endDay = dayStructures[this._curDayOfYearIdx];
+      if (startDay.date_object > endDay.date_object) {
+        const tmp = startDay;
+        startDay = endDay;
+        endDay = tmp;
+      }
+
+      const registeredRowKeys =
+        this._serviceRegister.tableDataService.getRegisteredRowKeys();
+      let startRow = registeredRowKeys.indexOf(this._startRowKey);
+      let endRow = registeredRowKeys.indexOf(this._curRowKey);
+      if (startRow > endRow) {
+        const tmp = startRow;
+        startRow = endRow;
+        endRow = tmp;
+      }
+      const selectedRowKeys = [];
+      for (let r = startRow; r <= endRow; r++) {
+        selectedRowKeys.push(registeredRowKeys[r]);
+      }
+
+      this._curBlockId = this._serviceRegister.tableDataService.importBlockData(
+        startDay.date_object,
+        endDay.date_object,
+        this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
+        selectedRowKeys
+      );
+
+      this._hideVisualizerOverride = false;
+      this._forceUpdateViewHandle();
+      return this._stateChooseBlockTypeForCreate;
+    },
+    onRightClick: (event, inDataRange, weekHeaderField) => {
+      // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
+      event.preventDefault();
+      this._hideVisualizerOverride = false;
+      return this._stateIdle;
+    },
+    onMouseMove: (event, inDataRange) => {
+      if (!inDataRange) {
+        this._hideVisualizerOverride = true;
+        return this._stateSelectForCreate;
+      }
+      this._hideVisualizerOverride = false;
+
+      const { x, y, target } = event;
+      let cellElement = target;
+
+      if (cellElement.classList.contains("create-block-visualizer")) {
+        const allElementsAtPos = document.elementsFromPoint(x, y);
+        cellElement = Array.from(allElementsAtPos).at(1); // direkt unter dem Visualizer-Element
+      }
+
+      const cellInfo = this.getCellInfo(x, y, cellElement);
+      // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
+      if (cellInfo) {
+        [this._curRowKey, this._curDayOfYearIdx] = cellInfo;
+
+        const startRowIdx = this._serviceRegister.tableDataService
+          .getRegisteredRowKeys()
+          .findIndex((k) => k === this._startRowKey);
+        const curRowIdx = this._serviceRegister.tableDataService
+          .getRegisteredRowKeys()
+          .findIndex((k) => k === this._curRowKey);
+        const rowIntervalToCheck = Interval.createAutoCorrect(
+          startRowIdx,
+          curRowIdx
+        );
+
+        /// prüfen auf kollidierende Blöcke
+        const dayIntervalToCheck = Interval.createAutoCorrect(
+          this._startDayOfYearIdx,
+          this._curDayOfYearIdx
+        );
+        this._curSelectionInvalid = this._serviceRegister.tableDataService
+          .getAssignedBlocks()
+          .filter((b) =>
+            Interval.createAutoCorrect(
+              b.startDayOfYearIdx,
+              b.endDayOfYearIdx
+            ).intersects(dayIntervalToCheck)
+          )
+          .flatMap((b) => b.rowKeys)
+          .map((rowKey) =>
+            this._serviceRegister.tableDataService
+              .getRegisteredRowKeys()
+              .findIndex((k) => k === rowKey)
+          )
+          .some((p) => rowIntervalToCheck.includes(p));
+      }
+      return this._stateSelectForCreate;
+    },
+    updateWidgets: () => {
+      // Visualizer
+      const area = this._calculateAbsolutArreaInPx();
+      if (Number.isFinite(area.top) && Number.isFinite(area.bottom)) {
+        this._widgets.visualizer.style.top = `${area.top}px`;
+        this._widgets.visualizer.style.left = `${area.left}px`;
+        this._widgets.visualizer.style.width = `${area.right - area.left}px`;
+        this._widgets.visualizer.style.height = `${area.bottom - area.top}px`;
+
+        this._widgets.visualizer.style.backgroundColor = this
+          ._curSelectionInvalid
+          ? "#B004"
+          : "#0B03";
+      }
+      if (this._hideVisualizerOverride) {
+        this._widgets.visualizer.classList.add("hidden");
+      } else {
+        this._widgets.visualizer.classList.remove("hidden");
+      }
+
+      // BlockContextMenu
+      this._widgets.blockContextMenu.classList.add("hidden");
+
+      // BlockTypeMenu
+      this._widgets.blockTypeMenu.classList.add("hidden");
+    },
+  };
+
+  _stateChooseBlockTypeForCreate = {
+    name: () => "stateChooseBlockTypeForCreate",
+    onLeftClick: (event, inDataRange, weekHeaderField) => {
+      if (event.target.classList.contains("menu-item-block-type")) {
+        const blockTypeToSet = this._getTypeOfSelectedBlockTypeMenuItem(
+          event.target
+        );
+        if (blockTypeToSet) {
+          this._serviceRegister.tableDataService.updateBlockType(
+            this._curBlockId,
+            blockTypeToSet
+          );
+        }
+        this._forceUpdateViewHandle();
+        return this._stateIdle;
+      } else {
+        // woanders hingeklickt, also Abbruch der Aktion (wie Rechtsklick)
+        this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        this._forceUpdateViewHandle();
+        return this._leftClickIdle(event, inDataRange, weekHeaderField);
+      }
+    },
+    onRightClick: (event, inDataRange, weekHeaderField) => {
+      // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
+      event.preventDefault();
+      // ein Abbruch hier führt zum Abbruch des Block-Creation-Prozesses, also den bereits
+      // importierten Datenblock wieder löschen:
+      this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+      this._forceUpdateViewHandle();
+      return this._stateIdle;
+    },
+    onMouseMove: (event, inDataRange) => {
+      return this._stateChooseBlockTypeForCreate;
+    },
+    updateWidgets: () => {
+      // Visualizer
+      this._widgets.visualizer.classList.add("hidden");
+
+      // BlockContextMenu
+      this._widgets.blockContextMenu.classList.add("hidden");
+
+      // BlockTypeMenu
+      // Verwende infos aus dem vorherigen Teil des Create-Block-Prozesses
+      const blockArea = this._calculateAbsolutArreaInPx();
+      this._widgets.blockTypeMenu.style.top = `${blockArea.top}px`;
+      this._widgets.blockTypeMenu.style.left = `${blockArea.right + 5}px`;
+      this._widgets.blockTypeMenu.style.transform = "translate(0%, -50%)";
+      this._widgets.blockTypeMenu.classList.remove("hidden");
+    },
+  };
+
+  _stateChooseBlockTypeForEdit = {
+    name: () => "stateChooseBlockTypeForEdit",
+    onLeftClick: (event, inDataRange, weekHeaderField) => {
+      if (event.target.classList.contains("menu-item-block-type")) {
+        const blockTypeToSet = this._getTypeOfSelectedBlockTypeMenuItem(
+          event.target
+        );
+        if (blockTypeToSet) {
+          this._serviceRegister.tableDataService.updateBlockType(
+            this._curBlockId,
+            blockTypeToSet
+          );
+          this._forceUpdateViewHandle();
+        }
+        return this._stateIdle;
+      } else {
+        // woanders hingeklickt
+        return this._leftClickIdle(event, inDataRange, weekHeaderField);
+      }
+    },
+    onRightClick: (event, inDataRange, weekHeaderField) => {
+      // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
+      event.preventDefault();
+      return this._stateIdle;
+    },
+    onMouseMove: (event, inDataRange) => {
+      return this._stateChooseBlockTypeForEdit;
+    },
+    updateWidgets: () => {
+      // Visualizer
+      this._widgets.visualizer.classList.add("hidden");
+
+      // BlockContextMenu
+      this._widgets.blockContextMenu.classList.add("hidden");
+
+      // BlockTypeMenu
+      const element = document.querySelector(
+        `.planner-block--${this._curBlockId}`
+      );
+      if (element) {
+        const bounds = element.getBoundingClientRect();
+        const offsets = this._widgets.container.getBoundingClientRect();
+        this._widgets.blockTypeMenu.style.top = `${bounds.top - offsets.top}px`;
+        this._widgets.blockTypeMenu.style.left = `${
+          bounds.right - offsets.left
+        }px`;
+        this._widgets.blockTypeMenu.style.transform = "translate(0%, -50%)";
+        this._widgets.blockTypeMenu.classList.remove("hidden");
+      } else {
+        console.error(`no element found for blockId ${this._curBlockId}`);
+        this._widgets.blockTypeMenu.classList.add("hidden");
+      }
+    },
+  };
+  //// INTERACTION STATES
+
+  //// INTERNAL STATE
+  _startDayOfYearIdx = -1;
+  _curDayOfYearIdx = -1;
+  _startRowKey = "";
+  _curRowKey = "";
+  _curSelectionInvalid = false;
+  _curBlockId = {};
+  _hideVisualizerOverride = false;
+
+  _currentState = this._stateIdle;
+  //// INTERNAL STATE
+
+  //// HELPERS
+  _calculateAbsolutArreaInPx() {
     const { left: leftOffset, top: topOffset } =
-      container.getBoundingClientRect();
+      this._widgets.container.getBoundingClientRect();
 
     let [left0, right0] = this._getFieldBoundsByDayOfYearIdx(
       this._startDayOfYearIdx
@@ -87,36 +437,16 @@ class TableInteractionService extends Service {
       right: right1,
     };
   }
-
   _getIdOfSelectedPlannerBlock(element) {
     return Array.from(element.classList)
       .filter((c) => c.startsWith("planner-block--"))
       .flatMap((c) => c.split("--")[1])[0];
   }
-
   _getTypeOfSelectedBlockTypeMenuItem(element) {
     return Array.from(element.classList)
       .filter((c) => c.startsWith("block-type--"))
       .flatMap((c) => c.split("--")[1])[0];
   }
-
-  _getSelectedRowKeys() {
-    const registeredRowKeys =
-      this._serviceRegister.tableDataService.getRegisteredRowKeys();
-    let startRow = registeredRowKeys.indexOf(this._startRowKey);
-    let endRow = registeredRowKeys.indexOf(this._curRowKey);
-    if (startRow > endRow) {
-      const tmp = startRow;
-      startRow = endRow;
-      endRow = tmp;
-    }
-    const selectedRowKeys = [];
-    for (let r = startRow; r <= endRow; r++) {
-      selectedRowKeys.push(registeredRowKeys[r]);
-    }
-    return selectedRowKeys;
-  }
-
   _getFieldBoundsByDayOfYearIdx(dayOfYearIdx) {
     const dayStructure =
       this._serviceRegister.tableStructureService.getEntityArrays()
@@ -142,7 +472,6 @@ class TableInteractionService extends Service {
     const right_ = left + ((dayOfWeek + 1) / 7) * (right - left);
     return [left_, right_];
   }
-
   _getFieldBoundsByRowKey(rowKey) {
     const field = document.querySelector(`.planner-header-column--${rowKey}`);
     if (field) {
@@ -150,163 +479,45 @@ class TableInteractionService extends Service {
       return [top, bottom];
     }
   }
+  _inDataRange(event) {
+    if (this._widgets.headerCorner) {
+      const { x, y } = event;
+      const { right, bottom } =
+        this._widgets.headerCorner.getBoundingClientRect();
+      return x > right && y > bottom;
+    }
+  }
+  //// HELPERS
 
-  _updateBlockTypeMenu(container, blockTypeMenu) {
-    const element = document.querySelector(
-      `.planner-block--${this._curBlockId}`
-    );
-    if (element) {
-      const bounds = element.getBoundingClientRect();
-      const offsets = container.getBoundingClientRect();
-      blockTypeMenu.style.top = `${bounds.top - offsets.top}px`;
-      blockTypeMenu.style.left = `${bounds.right - offsets.left}px`;
-      blockTypeMenu.style.transform = "translate(0%, -50%)";
-
-      // show / hide blockTypeMenu:
-      if (
-        this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE ||
-        this._interactionState === this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
-      ) {
-        blockTypeMenu.classList.remove("hidden");
-      } else {
-        blockTypeMenu.classList.add("hidden");
+  //// ACTIONS (unabhängig von STATE!)
+  _leftClickIdle(event, inDataRange, weekHeaderField) {
+    const { x, y, target } = event;
+    if (weekHeaderField) {
+      this._toggleWeekHeaderFieldCollapseState(event);
+      return this._stateIdle;
+    }
+    if (
+      target.classList.contains("planner-block") &&
+      !target.classList.contains("unspecified")
+    ) {
+      this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
+      return this._stateBlockSelected;
+    } else if (inDataRange) {
+      const cellInfo = this.getCellInfo(x, y, target);
+      // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
+      if (cellInfo) {
+        [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
+        [this._curRowKey, this._curDayOfYearIdx] = [
+          this._startRowKey,
+          this._startDayOfYearIdx,
+        ];
+        return this._stateSelectForCreate;
       }
-    } else {
-      // Block wurde gerade importiert und kann noch nicht aus dem Document ermittelt werden
-      // Verwende infos
-      const blockArea = this._calculateAbsolutArreaInPx(container);
-      blockTypeMenu.style.top = `${blockArea.top}px`;
-      blockTypeMenu.style.left = `${blockArea.right + 5}px`;
-      blockTypeMenu.style.transform = "translate(0%, -50%)";
-
-      blockTypeMenu.classList.remove("hidden");
     }
+    return this._stateIdle;
   }
-
-  _updateBlockContextMenu(container, blockContextMenu) {
-    if (this._interactionState === this._INTERACTION_STATE_BLOCK_SELECTED) {
-      const element = document.querySelector(
-        `.planner-block--${this._curBlockId}`
-      );
-      if (element) {
-        const bounds = element.getBoundingClientRect();
-        const offsets = container.getBoundingClientRect();
-        blockContextMenu.style.top = `${bounds.top - offsets.top}px`;
-        blockContextMenu.style.left = `${bounds.left - offsets.left}px`;
-        blockContextMenu.style.transform = "translate(-50%, -50%)";
-
-        blockContextMenu.classList.remove("hidden");
-      } else {
-        console.log(`error selecting block with id ${this._curBlockId}`);
-      }
-    } else {
-      blockContextMenu.classList.add("hidden");
-    }
-  }
-
-  _updateVisualizer(container, visualizer) {
-    const area = this._calculateAbsolutArreaInPx(container);
-    if (Number.isFinite(area.top) && Number.isFinite(area.bottom)) {
-      visualizer.style.top = `${area.top}px`;
-      visualizer.style.left = `${area.left}px`;
-      visualizer.style.width = `${area.right - area.left}px`;
-      visualizer.style.height = `${area.bottom - area.top}px`;
-
-      visualizer.style.backgroundColor = this._curSelectionInvalid
-        ? "#B004"
-        : "#0B03";
-    }
-
-    // show / hide visualizer:
-    if (this._interactionState === this._INTERACTION_STATE_CREATE_SELECT) {
-      visualizer.classList.remove("hidden");
-    } else {
-      visualizer.classList.add("hidden");
-    }
-  }
-
-  // Technische Eventhandler Planner.vue
-  onPlannerContainerClick(
-    event,
-    container,
-    visualizer,
-    headerCorner,
-    blockContextMenu,
-    blockTypeMenu
-  ) {
+  _toggleWeekHeaderFieldCollapseState(event) {
     const target_classList = event.target.classList;
-
-    // Wählen des zuständigen Eventhandlers
-    if (this._isInDataRange(event, headerCorner)) {
-      this.onDataCellRangeClick(
-        event,
-        container,
-        visualizer,
-        blockContextMenu,
-        blockTypeMenu,
-        this._MOUSE_BUTTON_LEFT
-      );
-    } else if (target_classList.contains("planner-header-row-week")) {
-      this.weekHeaderFieldClicked(
-        event,
-        container,
-        visualizer,
-        this._MOUSE_BUTTON_LEFT
-      );
-    }
-    event.stopPropagation();
-  }
-  onPlannerContainerContextMenu(
-    event,
-    container,
-    visualizer,
-    headerCorner,
-    blockContextMenu,
-    blockTypeMenu
-  ) {
-    //event.preventDefault();
-    const target_classList = event.target.classList;
-
-    // Wählen des zuständigen Eventhandlers
-    if (this._isInDataRange(event, headerCorner)) {
-      this.onDataCellRangeClick(
-        event,
-        container,
-        visualizer,
-        blockContextMenu,
-        blockTypeMenu,
-        this._MOUSE_BUTTON_RIGHT
-      );
-    } else if (target_classList.contains("planner-header-row-week")) {
-      this.weekHeaderFieldClicked(
-        event,
-        container,
-        visualizer,
-        this._MOUSE_BUTTON_RIGHT
-      );
-    }
-    event.stopPropagation();
-  }
-  onPlannerContainerMouseMove(
-    event,
-    container,
-    visualizer,
-    headerCorner,
-    blockContextMenu,
-    blockTypeMenu
-  ) {
-    if (this._isInDataRange(event, headerCorner)) {
-      // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
-      this.onDataCellRangeMove(event, container, visualizer, blockContextMenu);
-    }
-    event.stopPropagation();
-  }
-
-  // Fachliche Eventhandler -- click
-  weekHeaderFieldClicked(event, container, visualizer, button) {
-    const target_classList = event.target.classList;
-
-    if (button === this._MOUSE_BUTTON_RIGHT) return;
 
     // bestimme den Kalenderwochen-Index des angeklickten KW-HeaderField über classList-Eintrag 'planner-header-row-week--??'
     const kwIdx = Number(
@@ -328,205 +539,52 @@ class TableInteractionService extends Service {
     } else {
       target_classList.remove("collapsed");
     }
-    visualizer.classList.add("hidden");
+    this._forceUpdateViewHandle();
   }
+  //// ACTIONS (unabhängig von STATE!)
 
-  onDataCellRangeClick(
-    event,
-    container,
-    visualizer,
-    blockContextMenu,
-    blockTypeMenu,
-    button
-  ) {
-    const { x, y, target } = event;
-    if (this._interactionState === this._INTERACTION_STATE_NOTHING) {
-      if (button === this._MOUSE_BUTTON_LEFT) {
-        if (
-          event.target.classList.contains("planner-block") &&
-          !event.target.classList.contains("unspecified")
-        ) {
-          this._curBlockId = this._getIdOfSelectedPlannerBlock(event.target);
-          this._updateInteractionState(this._INTERACTION_STATE_BLOCK_SELECTED);
-          this._updateBlockContextMenu(container, blockContextMenu);
-        } else {
-          const cellInfo = this.getCellInfo(x, y, target);
-          // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
-          if (cellInfo) {
-            this._updateInteractionState(this._INTERACTION_STATE_CREATE_SELECT);
+  // Technische Eventhandler Planner.vue
+  onPlannerContainerClick(e) {
+    this.onMouseClick(e, this._MOUSE_BUTTON_LEFT);
+  }
+  onPlannerContainerContextMenu(e) {
+    this.onMouseClick(e, this._MOUSE_BUTTON_RIGHT);
+  }
+  onMouseClick(e, mouseButton) {
+    const prev = this._currentState.name();
+    const inDataRange = this._inDataRange(e);
+    const weekHeaderField =
+      !inDataRange && e.target.classList.contains("planner-header-row-week");
 
-            [this._startRowKey, this._startDayOfYearIdx] = cellInfo;
-            [this._curRowKey, this._curDayOfYearIdx] = [
-              this._startRowKey,
-              this._startDayOfYearIdx,
-            ];
-
-            this._updateVisualizer(container, visualizer);
-            this._updateBlockContextMenu(container, blockContextMenu);
-          }
-        }
-      }
-    } else if (
-      this._interactionState === this._INTERACTION_STATE_CREATE_SELECT
-    ) {
-      if (button === this._MOUSE_BUTTON_RIGHT) {
-        // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
-        event.preventDefault();
-        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-        this._updateVisualizer(container, visualizer);
-      } else if (button === this._MOUSE_BUTTON_LEFT) {
-        // Wenn der ausgewählte Bereich ungültig ist: nichts machen!
-        if (this._curSelectionInvalid) return;
-        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-
-        // Informationen zusammentragen, neuen Block anlegen und selecting-state verlassen
-        const dayStructures =
-          this._serviceRegister.tableStructureService.getEntityArrays()
-            .dayStructures;
-        let startDay = dayStructures[this._startDayOfYearIdx];
-        let endDay = dayStructures[this._curDayOfYearIdx];
-        if (startDay.date_object > endDay.date_object) {
-          const tmp = startDay;
-          startDay = endDay;
-          endDay = tmp;
-        }
-
-        this._curBlockId =
-          this._serviceRegister.tableDataService.importBlockData(
-            startDay.date_object,
-            endDay.date_object,
-            this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
-            this._getSelectedRowKeys()
-          );
-
-        this._updateInteractionState(
-          this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
-        );
-        this._updateVisualizer(container, visualizer);
-        this._updateBlockTypeMenu(container, blockTypeMenu);
-      }
-    } else if (
-      this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE ||
-      this._interactionState === this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
-    ) {
-      if (button === this._MOUSE_BUTTON_RIGHT) {
-        // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
-        event.preventDefault();
-        if (
-          this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
-        ) {
-          // cancelling selection of type implies cancellation of block-creation at all
-          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
-        }
-        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-        this._updateBlockTypeMenu(container, blockTypeMenu);
-      } else if (button === this._MOUSE_BUTTON_LEFT) {
-        if (target.classList.contains("menu-item-block-type")) {
-          const blockTypeToSet =
-            this._getTypeOfSelectedBlockTypeMenuItem(target);
-          if (blockTypeToSet) {
-            this._serviceRegister.tableDataService.updateBlockType(
-              this._curBlockId,
-              blockTypeToSet
-            );
-          }
-        } else if (
-          this._interactionState === this._INTERACTION_STATE_CREATE_CHOOSE_TYPE
-        ) {
-          // cancelling selection of type implies cancellation of block-creation at all
-          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
-        }
-        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-        this._updateBlockTypeMenu(container, blockTypeMenu);
-      }
-    } else if (
-      this._interactionState === this._INTERACTION_STATE_BLOCK_SELECTED
-    ) {
-      if (button === this._MOUSE_BUTTON_RIGHT) {
-        event.preventDefault();
-        this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-        this._updateBlockContextMenu(container, blockContextMenu);
-      } else if (button === this._MOUSE_BUTTON_LEFT) {
-        if (target.classList.contains("action--delete")) {
-          // lösche eintrag
-          this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
-          this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-          this._updateBlockContextMenu(container, blockContextMenu);
-        } else if (target.classList.contains("action--edit")) {
-          this._updateInteractionState(
-            this._INTERACTION_STATE_EDIT_CHOOSE_TYPE
-          );
-          this._updateBlockContextMenu(container, blockContextMenu);
-          this._updateBlockTypeMenu(container, blockTypeMenu);
-        } else if (target.classList.contains("planner-block")) {
-          // click auf einen Daten-Block - ist es derselbe?
-          const block_id = this._getIdOfSelectedPlannerBlock(target);
-          if (block_id === this._curBlockId) {
-            // click auf den bereits ausgewählten Block -> tue nichts!
-          } else {
-            // click auf einen anderen Datenblock -> bleib im State aber ändere die BlockID und aktualisiere die Menus
-            this._curBlockId = block_id;
-            this._updateBlockContextMenu(container, blockContextMenu);
-          }
-        } else {
-          // woanders hingeklickt -> zurück in state NOTHING
-          this._updateInteractionState(this._INTERACTION_STATE_NOTHING);
-          this._updateBlockContextMenu(container, blockContextMenu);
-        }
-      }
+    if (mouseButton === this._MOUSE_BUTTON_LEFT) {
+      this._currentState = this._currentState.onLeftClick(
+        e,
+        inDataRange,
+        weekHeaderField
+      );
+    } else if (mouseButton === this._MOUSE_BUTTON_RIGHT) {
+      this._currentState = this._currentState.onRightClick(
+        e,
+        inDataRange,
+        weekHeaderField
+      );
     }
+    e.stopPropagation();
+    this._currentState.updateWidgets();
+    if (this._currentState.name() !== prev)
+      console.log(`state-transition: ${prev} -> ${this._currentState.name()}`);
   }
-
-  onDataCellRangeMove(event, container, visualizer, blockContextMenu) {
-    if (this._interactionState === this._INTERACTION_STATE_CREATE_SELECT) {
-      const { x, y, target } = event;
-      let cellElement = target;
-
-      if (cellElement.classList.contains("create-block-visualizer")) {
-        const allElementsAtPos = document.elementsFromPoint(x, y);
-        cellElement = Array.from(allElementsAtPos).at(1); // direkt unter dem Visualizer-Element
-      }
-      const cellInfo = this.getCellInfo(x, y, cellElement);
-      // je nach Mausgeschwindigkeit schlägt hier die Erfassung manchmal fehl, dann lassen wir den Schritt aus ;-)
-      if (cellInfo) {
-        [this._curRowKey, this._curDayOfYearIdx] = cellInfo;
-
-        const startRowIdx = this._serviceRegister.tableDataService
-          .getRegisteredRowKeys()
-          .findIndex((k) => k === this._startRowKey);
-        const curRowIdx = this._serviceRegister.tableDataService
-          .getRegisteredRowKeys()
-          .findIndex((k) => k === this._curRowKey);
-        const rowIntervalToCheck = Interval.createAutoCorrect(
-          startRowIdx,
-          curRowIdx
-        );
-
-        /// Check if intercepting with existing blocks
-        const dayIntervalToCheck = Interval.createAutoCorrect(
-          this._startDayOfYearIdx,
-          this._curDayOfYearIdx
-        );
-        this._curSelectionInvalid = this._serviceRegister.tableDataService
-          .getAssignedBlocks()
-          .filter((b) =>
-            Interval.createAutoCorrect(
-              b.startDayOfYearIdx,
-              b.endDayOfYearIdx
-            ).intersects(dayIntervalToCheck)
-          )
-          .flatMap((b) => b.rowKeys)
-          .map((rowKey) =>
-            this._serviceRegister.tableDataService
-              .getRegisteredRowKeys()
-              .findIndex((k) => k === rowKey)
-          )
-          .some((p) => rowIntervalToCheck.includes(p));
-
-        this._updateVisualizer(container, visualizer);
-      }
-    }
+  onPlannerContainerMouseMove(e) {
+    const prev = this._currentState.name();
+    this._currentState.updateWidgets();
+    const inDataRange = this._inDataRange(e);
+    this._currentState = this._currentState.onMouseMove(e, inDataRange);
+    e.stopPropagation();
+    if (this._currentState.name() !== prev)
+      console.log(`state-transition: ${prev} -> ${this._currentState.name()}`);
   }
+  //
+
   ///////////////// Get CellInfo from event (and event.target)
   getCellInfo(x, y, target) {
     // Daten-Zelle ermitteln:

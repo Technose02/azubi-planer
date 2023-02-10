@@ -1,37 +1,13 @@
 <template>
+  <h1 v-if="this.UPDATE_UI_HANDLE === 0">NOPE</h1>
   <div
-    @click="
-      (e) =>
-        this.serviceManager.tableInteractionService.onPlannerContainerClick(
-          e,
-          this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner,
-          this.$refs.blockContextMenu,
-          this.$refs.blockTypeMenu
-        )
-    "
+    v-else
+    @click="this.serviceManager.tableInteractionService.onPlannerContainerClick"
     @contextmenu="
-      (e) =>
-        this.serviceManager.tableInteractionService.onPlannerContainerContextMenu(
-          e,
-          this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner,
-          this.$refs.blockContextMenu,
-          this.$refs.blockTypeMenu
-        )
+      this.serviceManager.tableInteractionService.onPlannerContainerContextMenu
     "
     @mousemove="
-      (e) =>
-        this.serviceManager.tableInteractionService.onPlannerContainerMouseMove(
-          e,
-          this.$refs.plannerContainer,
-          this.$refs.createBlockVisualizer,
-          this.$refs.headerCorner,
-          this.$refs.blockContextMenu,
-          this.$refs.blockTypeMenu
-        )
+      this.serviceManager.tableInteractionService.onPlannerContainerMouseMove
     "
     ref="plannerContainer"
     class="planner-container-grid"
@@ -179,13 +155,7 @@
       class="create-block-visualizer hidden"
     ></div>
     <div class="planner-header-column text-tester" ref="textTester"></div>
-    <div
-      v-if="
-        this.serviceManager.tableInteractionService._interactionState >= 0 // forces update of list
-      "
-      class="menu menu--block-type hidden"
-      ref="blockTypeMenu"
-    >
+    <div class="menu menu--block-type hidden" ref="blockTypeMenu">
       <template
         v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu(
           this.$refs.textTester,
@@ -220,6 +190,7 @@ import IconEdit from "../icons/IconEdit.vue";
 export default {
   data() {
     return {
+      UPDATE_UI_HANDLE: 1,
       serviceManager: [],
       shared: store,
     };
@@ -241,6 +212,9 @@ export default {
     //console.log("Planner -- created");
     // Hier und nur hier wird der ServiceManager initialisiert
     this.serviceManager = initServices(this.year, this.rows, this.types);
+    this.serviceManager.tableInteractionService.setForceUpdate(
+      this.$forceUpdate
+    );
     this.shared.serviceManager = this.serviceManager;
   },
   beforeMount() {
@@ -248,6 +222,17 @@ export default {
   },
   mounted() {
     //console.log("Planner -- mounted");
+    this.serviceManager.UPDATE_UI_HANDLE = this.UPDATE_UI_HANDLE;
+    this.serviceManager.tableInteractionService.setWidgets(
+      this.$refs.plannerContainer,
+      this.$refs.headerCorner,
+      this.$refs.createBlockVisualizer,
+      this.$refs.blockContextMenu,
+      this.$refs.blockTypeMenu
+    );
+    this.serviceManager.tableStructureService.setTextTesterWidget(
+      this.$refs.textTester
+    );
   },
   beforeUpdate() {
     //console.log("Planner -- beforeUpdate");
