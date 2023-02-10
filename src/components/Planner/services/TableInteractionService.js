@@ -1,54 +1,6 @@
 import Interval from "../../Interval";
 import Service from "./Service";
 
-class Rect {
-  top;
-  left;
-  right;
-  bottom;
-
-  constructor(top, right, bottom, left) {
-    this.top = top;
-    this.right = right;
-    this.bottom = bottom;
-    this.left = left;
-  }
-
-  static fromRect(rect) {
-    return new Rect(
-      Number(rect.top),
-      Number(rect.right),
-      Number(rect.bottom),
-      Number(rect.left)
-    );
-  }
-
-  moveLeft(amount) {
-    this._left += amount;
-    this._right -= amount;
-  }
-  moveRight(amount) {
-    this._left -= amount;
-    this._right += amount;
-  }
-  moveUp(amount) {
-    this._top -= amount;
-    this._bottom += amount;
-  }
-  moveDown(amount) {
-    this._top += amount;
-    this._bottom -= amount;
-  }
-
-  width() {
-    return this.right - this.left;
-  }
-
-  height() {
-    return this.bottom - this.top;
-  }
-}
-
 class TableInteractionService extends Service {
   // Interne Konstanten
   _MOUSE_BUTTON_LEFT = 0;
@@ -83,10 +35,10 @@ class TableInteractionService extends Service {
     this._interactionState = newInteractionState;
   }
 
-  _isInDataRange(event, headerCornerRect) {
-    return (
-      event.x > headerCornerRect.right && event.y > headerCornerRect.bottom
-    );
+  _isInDataRange(event, headerCorner) {
+    const { x, y } = event;
+    const { right, bottom } = headerCorner.getBoundingClientRect();
+    return x > right && y > bottom;
   }
 
   _calculateAbsolutArreaInPx(container) {
@@ -283,12 +235,9 @@ class TableInteractionService extends Service {
     blockTypeMenu
   ) {
     const target_classList = event.target.classList;
-    const headerCornerRect = Rect.fromRect(
-      headerCorner.getBoundingClientRect()
-    );
 
     // Wählen des zuständigen Eventhandlers
-    if (this._isInDataRange(event, headerCornerRect)) {
+    if (this._isInDataRange(event, headerCorner)) {
       this.onDataCellRangeClick(
         event,
         container,
@@ -317,12 +266,9 @@ class TableInteractionService extends Service {
   ) {
     //event.preventDefault();
     const target_classList = event.target.classList;
-    const headerCornerRect = Rect.fromRect(
-      headerCorner.getBoundingClientRect()
-    );
 
     // Wählen des zuständigen Eventhandlers
-    if (this._isInDataRange(event, headerCornerRect)) {
+    if (this._isInDataRange(event, headerCorner)) {
       this.onDataCellRangeClick(
         event,
         container,
@@ -349,11 +295,7 @@ class TableInteractionService extends Service {
     blockContextMenu,
     blockTypeMenu
   ) {
-    const headerCornerRect = Rect.fromRect(
-      headerCorner.getBoundingClientRect()
-    );
-
-    if (this._isInDataRange(event, headerCornerRect)) {
+    if (this._isInDataRange(event, headerCorner)) {
       // Achtung: hier wird implizit das Wissen über die Anzahl der Header-Rows und der Header-Columns verwendet!!
       this.onDataCellRangeMove(event, container, visualizer, blockContextMenu);
     }
