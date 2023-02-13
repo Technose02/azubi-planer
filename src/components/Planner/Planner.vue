@@ -210,7 +210,7 @@ export default {
   created() {
     //console.log("Planner -- created");
     // Hier und nur hier wird der ServiceManager initialisiert
-    this.serviceManager = initServices(this.year, this.rows, this.types);
+    this.serviceManager = initServices(this.year, [], []);
     this.serviceManager.tableInteractionService.setForceUpdate(
       this.$forceUpdate
     );
@@ -250,6 +250,26 @@ export default {
   },
   unmounted() {
     //console.log("Planner -- unmounted");
+  },
+  methods: {
+    addBlockData(startDate, endDate, type, rowKeys) {
+      this.shared.serviceManager.tableDataService.importBlockData(
+        startDate,
+        endDate,
+        type,
+        rowKeys
+      );
+    },
+
+    resetDataHeaderRows(dataHeaderRows) {
+      this.shared.serviceManager.tableDataService.resetDataHeaderRows(
+        dataHeaderRows
+      );
+    },
+
+    resetBlockTypes(blockTypes) {
+      this.shared.serviceManager.tableDataService.resetBlockTypes(blockTypes);
+    },
   },
 };
 </script>

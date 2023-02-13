@@ -27,21 +27,29 @@ class TableDataService extends Service {
   _assignedBlocks = new Map(); // Die Zuordnung von Azubis zu Blöcken
   // z.B. ffarina: ["<Name>_<startDayOfYearIdx>-<endDayOfYearIdx>", ...]
 
-  constructor(dataHeaderRows, types) {
+  constructor() {
     super();
+    this.resetDataHeaderRows([]);
+    this.resetBlockTypes([]);
+  }
+
+  _init() {}
+
+  resetDataHeaderRows(dataHeaderRows) {
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
     this._registeredRowTitles = dataHeaderRows.map((r) => r.title);
+  }
+
+  resetBlockTypes(blockTypes) {
     this._registeredBlockTypes = new Map();
     this._registeredBlockTypes.set(
       this._UNSPECIFIED_TYPE,
       this._UNSPECIFIED_TYPE_DATA
     );
-    types.forEach((entry) => {
+    blockTypes.forEach((entry) => {
       this._registeredBlockTypes.set(entry.type, entry.data);
     });
   }
-
-  _init() {}
 
   setUnspecifiedTypeDataColor(unspecifiedTypeDataColor) {
     this._UNSPECIFIED_TYPE_DATA.color = unspecifiedTypeDataColor;
@@ -69,32 +77,73 @@ class TableDataService extends Service {
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
   importBlockData(startDate, endDate, type, rowKeys) {
+    // ist der type bekannt?
+    if (!this._registeredBlockTypes.has(type)) {
+      console.log(
+        `warning: block-type '${type}' not registered! Ignoring this data block`
+      );
+      return undefined;
+    }
+
+    // nur die rowKeys nutzen, die auch registriert sind - wenn keine registriert sind -> return undefined
+    rowKeys = rowKeys.filter((k) => {
+      if (!this._registeredRowKeys.includes(k)) {
+        console.log(`warning: ignoring unknown data-header-rowkey '${k}'`);
+        return false;
+      }
+      return true;
+    });
+    if (rowKeys.length === 0) {
+      console.log(
+        `warning: none of the assigned rowkeys are registered! Ignoring the whole data block`
+      );
+      return undefined;
+    }
+
     // Zunächst sind die Dates auf den jeweiligen dayOfYear-Index zu mappen
     const dayStructures =
       this._serviceRegister.tableStructureService.getEntityArrays()
         .dayStructures;
 
-    const startDayOfYearIdx = dayStructures.findIndex(
+    const firstDayInCalender = dayStructures.at(0);
+    const lastDayOfCalender = dayStructures.at(-1);
+    if (
+      endDate < firstDayInCalender.date_object ||
+      startDate > lastDayOfCalender.date_object
+    ) {
+      console.log(
+        `warning: data-block not in displayed calender-range! Ignoring block`
+      );
+      return undefined;
+    }
+
+    let startDayOfYearIdx = dayStructures.findIndex(
       (d) => d.date_object >= startDate && d.date_object <= startDate
     );
 
     if (!Number.isFinite(startDayOfYearIdx) || startDayOfYearIdx < 0) {
-      console.error(`invalid start-date: ${startDate}`);
-      return;
+      console.log(
+        `warning: start of block before displayed calender-range! Clamping to start of displayed calender-range`
+      );
+      startDayOfYearIdx = 0;
     }
 
-    const endDayOfYearIdx = dayStructures.findIndex(
+    let endDayOfYearIdx = dayStructures.findIndex(
       (d) => d.date_object >= endDate && d.date_object <= endDate
     );
 
     if (!Number.isFinite(endDayOfYearIdx) || endDayOfYearIdx < 0) {
-      console.error(`invalid end-date: ${endDate}`);
-      return;
+      console.log(
+        `warning: end of block after displayed calender-range! Clamping to end of displayed calender-range`
+      );
+      endDayOfYearIdx = dayStructures.length - 1;
     }
 
     // Generiere eine BlockID und füge den Block hinzu
     const blockId = `${type}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
     const blockDataToSet = {
+      startDate,
+      endDate,
       startDayOfYearIdx,
       endDayOfYearIdx,
       type,
@@ -223,8 +272,8 @@ class TableDataService extends Service {
     return blockDataIntervals;
   }
 }
-const createTableDataService = function (headerData, types) {
-  return new TableDataService(headerData, types);
+const createTableDataService = function () {
+  return new TableDataService();
 };
 
 export default createTableDataService;
