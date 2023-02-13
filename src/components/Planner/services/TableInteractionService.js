@@ -116,7 +116,7 @@ class TableInteractionService extends Service {
       const left = refX - menuBounds.right + menuBounds.left - 5;
       const top = refY - menuBounds.bottom + menuBounds.top - 5;
       this._widgets.blockContextMenu.style.left = `${left}px`;
-      this._widgets.blockContextMenu.style.top = `${window.scrollY + top}px`;
+      this._widgets.blockContextMenu.style.top = `${top}px`;
 
       // BlockTypeMenu
       this._widgets.blockTypeMenu.classList.add("hidden");
@@ -168,6 +168,8 @@ class TableInteractionService extends Service {
         this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
         selectedRowKeys
       );
+
+      this._setContextMenuReferencePoint(event);
 
       this._hideVisualizerOverride = false;
       this._forceUpdateViewHandle();
@@ -303,12 +305,14 @@ class TableInteractionService extends Service {
       this._widgets.blockContextMenu.classList.add("hidden");
 
       // BlockTypeMenu
-      // Verwende infos aus dem vorherigen Teil des Create-Block-Prozesses
-      const blockArea = this._calculateAbsolutArreaInPx();
-      this._widgets.blockTypeMenu.style.top = `${blockArea.top}px`;
-      this._widgets.blockTypeMenu.style.left = `${blockArea.right + 5}px`;
-      this._widgets.blockTypeMenu.style.transform = "translate(0%, -50%)";
       this._widgets.blockTypeMenu.classList.remove("hidden");
+      const menuBounds = this._widgets.blockTypeMenu.getBoundingClientRect();
+      const { x: refX, y: refY } = this._contextMenuReferencePoint;
+      const left = refX - menuBounds.right + menuBounds.left - 5;
+      const top = refY - menuBounds.bottom + menuBounds.top;
+      this._widgets.blockTypeMenu.style.left = `${left}px`;
+      this._widgets.blockTypeMenu.style.top = `${top}px`;
+      this._widgets.blockTypeMenu.style.transform = "translate(0%, 50%)";
     },
   };
 
@@ -348,22 +352,14 @@ class TableInteractionService extends Service {
       this._widgets.blockContextMenu.classList.add("hidden");
 
       // BlockTypeMenu
-      const element = document.querySelector(
-        `.planner-block--${this._curBlockId}`
-      );
-      if (element) {
-        const bounds = element.getBoundingClientRect();
-        const offsets = this._widgets.container.getBoundingClientRect();
-        this._widgets.blockTypeMenu.style.top = `${bounds.top - offsets.top}px`;
-        this._widgets.blockTypeMenu.style.left = `${
-          bounds.right - offsets.left
-        }px`;
-        this._widgets.blockTypeMenu.style.transform = "translate(0%, -50%)";
-        this._widgets.blockTypeMenu.classList.remove("hidden");
-      } else {
-        console.error(`no element found for blockId ${this._curBlockId}`);
-        this._widgets.blockTypeMenu.classList.add("hidden");
-      }
+      this._widgets.blockTypeMenu.classList.remove("hidden");
+      const menuBounds = this._widgets.blockTypeMenu.getBoundingClientRect();
+      const { x: refX, y: refY } = this._contextMenuReferencePoint;
+      const left = refX - menuBounds.right + menuBounds.left - 5;
+      const top = refY - menuBounds.bottom + menuBounds.top;
+      this._widgets.blockTypeMenu.style.left = `${left}px`;
+      this._widgets.blockTypeMenu.style.top = `${top}px`;
+      this._widgets.blockTypeMenu.style.transform = "translate(0%, 50%)";
     },
   };
   //// INTERACTION STATES
