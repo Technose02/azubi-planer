@@ -46,6 +46,12 @@ class TableInteractionService extends Service {
   //// WIDGETS
 
   //// PROPERTIES
+  _setContextMenuReferencePoint(event) {
+    const containerBounds = this._widgets.container.getBoundingClientRect();
+    this._contextMenuReferencePoint.x = event.clientX - containerBounds.left;
+    this._contextMenuReferencePoint.y = event.clientY - containerBounds.top;
+  }
+
   setSelectionColors(colorSelectionValid, colorSelectionInvalid) {
     this._colorSelectionValid = colorSelectionValid;
     this._colorSelectionInvalid = colorSelectionInvalid;
@@ -104,14 +110,11 @@ class TableInteractionService extends Service {
 
       // BlockContextMenu
       this._widgets.blockContextMenu.classList.remove("hidden");
-      const containerBounds = this._widgets.container.getBoundingClientRect();
       const menuBounds = this._widgets.blockContextMenu.getBoundingClientRect();
 
       const { x: refX, y: refY } = this._contextMenuReferencePoint;
-      const left =
-        refX - containerBounds.left - menuBounds.right + menuBounds.left - 5;
-      const top =
-        refY - containerBounds.top - menuBounds.bottom + menuBounds.top - 5;
+      const left = refX - menuBounds.right + menuBounds.left - 5;
+      const top = refY - menuBounds.bottom + menuBounds.top - 5;
       this._widgets.blockContextMenu.style.left = `${left}px`;
       this._widgets.blockContextMenu.style.top = `${window.scrollY + top}px`;
 
@@ -503,7 +506,7 @@ class TableInteractionService extends Service {
       !target.classList.contains("unspecified")
     ) {
       this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
-      this._contextMenuReferencePoint = { x: event.clientX, y: event.clientY };
+      this._setContextMenuReferencePoint(event);
       return this._stateBlockSelected;
     } else if (inDataRange) {
       const cellInfo = this.getCellInfo(x, y, target);
