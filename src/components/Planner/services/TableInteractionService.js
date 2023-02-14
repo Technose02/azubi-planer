@@ -45,6 +45,23 @@ class TableInteractionService extends Service {
   }
   //// WIDGETS
 
+  //// EventHandlers
+  _onBlockAddedHandler = undefined;
+  setOnBlockAddedHandler(onBlockAddedHandler) {
+    this._onBlockAddedHandler = onBlockAddedHandler;
+  }
+
+  _onBlockDeletedHandler = undefined;
+  setOnBlockDeletedHandler(onBlockDeletedHandler) {
+    this._onBlockDeletedHandler = onBlockDeletedHandler;
+  }
+
+  _onBlockUpdatedHandler = undefined;
+  setOnBlockUpdatedHandler(onBlockUpdatedHandler) {
+    this._onBlockUpdatedHandler = onBlockUpdatedHandler;
+  }
+  //// EventHandlers
+
   //// PROPERTIES
   _setContextMenuReferencePoint(event) {
     const containerBounds = this._widgets.container.getBoundingClientRect();
@@ -86,8 +103,29 @@ class TableInteractionService extends Service {
     name: () => "stateBlockSelected",
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       if (event.target.classList.contains("action--delete")) {
+        // hole noch einmal Blockdaten und rowKeys um diese ggf. noch an den onBlockDeletedHandler übergeben zu können
+        const { startDate, endDate, type } =
+          this._serviceRegister.tableDataService.getBlockData(this._curBlockId);
+        const rowKeys =
+          this._serviceRegister.tableDataService.getAssignedRowKeys(
+            this._curBlockId
+          );
+
         // lösche eintrag
         this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+
+        // fire onBlockDeletedHandler if set
+        if (this._onBlockDeletedHandler) {
+          this._onBlockDeletedHandler({
+            blockId: this._curBlockId,
+            startDate,
+            endDate,
+            type,
+            rowKeys,
+          });
+        }
+        //
+
         this._forceUpdateViewHandle();
         return this._stateIdle;
       } else if (event.target.classList.contains("action--edit")) {
@@ -275,6 +313,27 @@ class TableInteractionService extends Service {
             this._curBlockId,
             blockTypeToSet
           );
+
+          // fire onBlockAddedHandler if set
+          if (this._onBlockAddedHandler) {
+            const { startDate, endDate } =
+              this._serviceRegister.tableDataService.getBlockData(
+                this._curBlockId
+              );
+            const rowKeys =
+              this._serviceRegister.tableDataService.getAssignedRowKeys(
+                this._curBlockId
+              );
+
+            this._onBlockAddedHandler({
+              blockId: this._curBlockId,
+              startDate,
+              endDate,
+              type: blockTypeToSet,
+              rowKeys,
+            });
+          }
+          //
         }
         this._forceUpdateViewHandle();
         return this._stateIdle;
@@ -328,6 +387,28 @@ class TableInteractionService extends Service {
             this._curBlockId,
             blockTypeToSet
           );
+
+          // fire onBlockUpdatedHandler if set
+          if (this._onBlockUpdatedHandler) {
+            const { startDate, endDate } =
+              this._serviceRegister.tableDataService.getBlockData(
+                this._curBlockId
+              );
+            const rowKeys =
+              this._serviceRegister.tableDataService.getAssignedRowKeys(
+                this._curBlockId
+              );
+
+            this._onBlockUpdatedHandler({
+              blockId: this._curBlockId,
+              startDate,
+              endDate,
+              type: blockTypeToSet,
+              rowKeys,
+            });
+          }
+          //
+
           this._forceUpdateViewHandle();
         }
         return this._stateIdle;

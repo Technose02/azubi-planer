@@ -214,6 +214,15 @@ export default {
     this.serviceManager.tableInteractionService.setForceUpdate(
       this.$forceUpdate
     );
+    this.serviceManager.tableInteractionService.setOnBlockAddedHandler(
+      this.onBlockAdded
+    );
+    this.serviceManager.tableInteractionService.setOnBlockDeletedHandler(
+      this.onBlockDeleted
+    );
+    this.serviceManager.tableInteractionService.setOnBlockUpdatedHandler(
+      this.onBlockUpdated
+    );
     this.shared.serviceManager = this.serviceManager;
   },
   beforeMount() {
@@ -252,6 +261,9 @@ export default {
     //console.log("Planner -- unmounted");
   },
   methods: {
+    resetBlockData() {
+      this.shared.serviceManager.tableDataService.resetBlockData();
+    },
     addBlockData(startDate, endDate, type, rowKeys) {
       this.shared.serviceManager.tableDataService.importBlockData(
         startDate,
@@ -269,6 +281,16 @@ export default {
 
     resetBlockTypes(blockTypes) {
       this.shared.serviceManager.tableDataService.resetBlockTypes(blockTypes);
+    },
+
+    onBlockAdded(event) {
+      this.$emit("block-added", event);
+    },
+    onBlockDeleted(event) {
+      this.$emit("block-deleted", event);
+    },
+    onBlockUpdated(event) {
+      this.$emit("block-updated", event);
     },
   },
 };

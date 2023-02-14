@@ -10,6 +10,9 @@
         :year="this.year"
         selection-color-valid="#0000FF0F"
         selection-color-invalid="#FF000030"
+        @block-added="onBlockAdded"
+        @block-deleted="onBlockDeleted"
+        @block-updated="onBlockUpdated"
       ></planner>
     </div>
   </main>
@@ -25,6 +28,18 @@ export default {
   components: {
     Planner,
   },
+  methods: {
+    onBlockAdded(event) {
+      console.log(`onBlockAdded(): `, event);
+    },
+    onBlockDeleted(event) {
+      console.log(`onBlockDeleted(): `, event);
+    },
+    onBlockUpdated(event) {
+      console.log(`onBlockUpdated(): `, event);
+    },
+  },
+  created() {},
   mounted() {
     this.$refs.plannerView.resetDataHeaderRows([
       { title: "Farina Fachinformatikerin", key: "ffarina" },

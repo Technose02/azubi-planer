@@ -9,31 +9,34 @@ class TableDataService extends Service {
     labels: ["unspezifiziert"],
   };
 
-  _blockData;
   _registeredRowKeys;
   _registeredRowTitles;
   _registeredBlockTypes;
-  _assignedBlocks;
+  _blockData; // Die Blöcke, also Name, von wann bis wann, eine id[KEY] (wird generiert) und wie er darzustellen ist.
+  _assignedBlocks; // Die Zuweisungen von Blöcken zu Azubis
+  _blockIdCntr;
 
   // die Daten zu den Blöcken sind in einer Map organisiert. Ein Block hat eine ID, unter der er dort gelistet ist.
   // Ein Block kann mehreren Spalten zugeordnet sein (Abstrahierung über keys, nicht Row-Indizes!).
   // Beispiel: Ein AE-Block kann den Keys 'ffarina', 'iingo' und 'ssebastian' zugeordnet sein, wenn die Zugehörigen Azubis diesen Block
   //           gemeinsam absolvieren. Die Explizite Zuweisung zu mehreren Keys (statt einfach drei unterschiedliche Blöcke mit dem gleichen Aussehen zu erstellen)
   //           kann dann von dem Modell erfasst und in der Darstellung berücksichtigt werden.
-  //
-  _blockData = new Map(); // Die Blöcke, also Name, von wann bis wann, eine id[KEY] (wird generiert) und wie er darzustellen ist.
-  // z.B: { name, startDate, endDate, { styleData, classData } } => ID "<Name>_<startDayOfYearIdx>-<endDayOfYearIdx>"
-
-  _assignedBlocks = new Map(); // Die Zuordnung von Azubis zu Blöcken
-  // z.B. ffarina: ["<Name>_<startDayOfYearIdx>-<endDayOfYearIdx>", ...]
 
   constructor() {
     super();
     this.resetDataHeaderRows([]);
     this.resetBlockTypes([]);
+    this.resetBlockData();
+    this._blockIdCntr = 0;
   }
 
   _init() {}
+
+  _getNextBlockId() {
+    const blockId = this._blockIdCntr;
+    this._blockIdCntr += 1;
+    return `block-${blockId}`;
+  }
 
   resetDataHeaderRows(dataHeaderRows) {
     this._registeredRowKeys = dataHeaderRows.map((r) => r.key);
@@ -49,6 +52,12 @@ class TableDataService extends Service {
     blockTypes.forEach((entry) => {
       this._registeredBlockTypes.set(entry.type, entry.data);
     });
+  }
+
+  // Wird gerufen wenn alle Blöcke und deren Zuweisungen zurückgesetzt werden sollen
+  resetBlockData() {
+    this._blockData = new Map();
+    this._assignedBlocks = new Map();
   }
 
   setUnspecifiedTypeDataColor(unspecifiedTypeDataColor) {
@@ -140,7 +149,8 @@ class TableDataService extends Service {
     }
 
     // Generiere eine BlockID und füge den Block hinzu
-    const blockId = `${type}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
+    //const blockId = `${type}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
+    const blockId = this._getNextBlockId();
     const blockDataToSet = {
       startDate,
       endDate,
@@ -162,6 +172,18 @@ class TableDataService extends Service {
     const blockData = this._blockData.get(blockId);
     assert(blockData);
     blockData.type = blockType;
+  }
+
+  getBlockData(blockId) {
+    if (this._blockData.has(blockId)) {
+      return this._blockData.get(blockId);
+    }
+  }
+
+  getAssignedRowKeys(blockId) {
+    if (this._assignedBlocks.has(blockId)) {
+      return [...this._assignedBlocks.get(blockId)];
+    }
   }
 
   // Enfernt einen Block und die Zuordnung zu Datenzeilen
