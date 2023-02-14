@@ -457,6 +457,20 @@ export default {
   border-right: 0.1rem solid black;
 }
 
+.planner-block.selected {
+  box-shadow: inset 0 0 0.2rem 0.15rem #000000be;
+
+  opacity: 0.8;
+  background-size: 10rem 10rem;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(49, 4, 4, 0) -0.01rem,
+    #000000be 0.1rem,
+    rgba(49, 4, 4, 0) 0.2rem,
+    rgba(49, 4, 4, 0) 1rem
+  );
+}
+
 .planner-block.unspecified {
   font-style: italic;
 }

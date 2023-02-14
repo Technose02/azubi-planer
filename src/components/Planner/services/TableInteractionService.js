@@ -127,16 +127,19 @@ class TableInteractionService extends Service {
         //
 
         this._forceUpdateViewHandle();
+        this._deselectAllBlocks();
         return this._stateIdle;
       } else if (event.target.classList.contains("action--edit")) {
         return this._stateChooseBlockTypeForEdit;
       } else {
         // woanders hingeklickt
+        this._deselectAllBlocks();
         return this._leftClickIdle(event, inDataRange, weekHeaderField);
       }
     },
     onRightClick: (event, inDataRange, weekHeaderField) => {
       event.preventDefault();
+      this._deselectAllBlocks();
       return this._stateIdle;
     },
     onMouseMove: (event, inDataRange) => {
@@ -211,6 +214,14 @@ class TableInteractionService extends Service {
 
       this._hideVisualizerOverride = false;
       this._forceUpdateViewHandle();
+
+      // hacky: use a 30ms delay to select the newly created block-object, since it won't be "queryable"
+      //        instantly
+      new Promise((res, _) => {
+        this._forceUpdateViewHandle();
+        setTimeout(res, 30);
+      }).then(() => this._selectAllPlannerBlockOfCurrentBlockId());
+
       return this._stateChooseBlockTypeForCreate;
     },
     onRightClick: (event, inDataRange, weekHeaderField) => {
@@ -335,11 +346,13 @@ class TableInteractionService extends Service {
           }
           //
         }
+        this._deselectAllBlocks();
         this._forceUpdateViewHandle();
         return this._stateIdle;
       } else {
         // woanders hingeklickt, also Abbruch der Aktion (wie Rechtsklick)
         this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+        this._deselectAllBlocks();
         this._forceUpdateViewHandle();
         return this._leftClickIdle(event, inDataRange, weekHeaderField);
       }
@@ -350,6 +363,7 @@ class TableInteractionService extends Service {
       // ein Abbruch hier führt zum Abbruch des Block-Creation-Prozesses, also den bereits
       // importierten Datenblock wieder löschen:
       this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+      this._deselectAllBlocks();
       this._forceUpdateViewHandle();
       return this._stateIdle;
     },
@@ -411,15 +425,18 @@ class TableInteractionService extends Service {
 
           this._forceUpdateViewHandle();
         }
+        this._deselectAllBlocks();
         return this._stateIdle;
       } else {
         // woanders hingeklickt
+        this._deselectAllBlocks();
         return this._leftClickIdle(event, inDataRange, weekHeaderField);
       }
     },
     onRightClick: (event, inDataRange, weekHeaderField) => {
       // aktion abbrechen, zurück zu INTERACTION_STATE_NOTHING
       event.preventDefault();
+      this._deselectAllBlocks();
       return this._stateIdle;
     },
     onMouseMove: (event, inDataRange) => {
@@ -572,6 +589,24 @@ class TableInteractionService extends Service {
   //// HELPERS
 
   //// ACTIONS (unabhängig von STATE!)
+  _selectAllPlannerBlockOfCurrentBlockId() {
+    // add selected-class to all "boxes" belonging to this block
+    console.log(
+      `selecting elements with class 'planner-block--${this._curBlockId}'`
+    );
+    console.log(
+      document.querySelectorAll(`.planner-block--${this._curBlockId}`)
+    );
+    Array.from(
+      document.querySelectorAll(`.planner-block--${this._curBlockId}`)
+    ).forEach((el) => el.classList.add("selected"));
+  }
+  _deselectAllBlocks() {
+    // add selected-class to all "boxes" belonging to this block
+    Array.from(document.querySelectorAll(`.planner-block.selected`)).forEach(
+      (el) => el.classList.remove("selected")
+    );
+  }
   _leftClickIdle(event, inDataRange, weekHeaderField) {
     const { x, y, target } = event;
     if (weekHeaderField) {
@@ -584,6 +619,9 @@ class TableInteractionService extends Service {
     ) {
       this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
       this._setContextMenuReferencePoint(event);
+
+      this._selectAllPlannerBlockOfCurrentBlockId();
+
       return this._stateBlockSelected;
     } else if (inDataRange) {
       const cellInfo = this.getCellInfo(x, y, target);
