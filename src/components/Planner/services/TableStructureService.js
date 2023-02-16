@@ -266,14 +266,15 @@ class TableStructureService extends Service {
     const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
-    const stepCollapsed = this._BASE_COLUMN_WIDTH; // eine logische Spalte (so breit wie ein Tag wenn nicht kollabiert) ist für eine kollabierte KW vorgesehen
-    const stepNonCollapsed = 7 * stepCollapsed; // sieben Tage sind darzustellen wenn die KW nicht kollabiert ist
+    const daysInWeekAsDayOfYear = this.getEntityArrays().daysInWeekAsDayOfYear;
 
     let k = 0;
-    calenderWeeksCollapsedState.forEach((flag) => {
-      flag ? (k += stepCollapsed) : (k += stepNonCollapsed);
+    calenderWeeksCollapsedState.forEach((flag, idx) => {
+      const l = daysInWeekAsDayOfYear[idx]?.length ?? 0;
+      flag
+        ? (k += Math.min(l, 1) * this._BASE_COLUMN_WIDTH)
+        : (k += l * this._BASE_COLUMN_WIDTH);
     });
-
     return k;
   }
 

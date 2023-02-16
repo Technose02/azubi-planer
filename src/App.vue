@@ -24,7 +24,7 @@ import Planner from "./components/Planner/Planner.vue";
 export default {
   data() {
     return {
-      year: 2023,
+      year: 2024,
 
       currentMapping: new Map(),
 
