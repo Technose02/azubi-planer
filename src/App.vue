@@ -120,12 +120,12 @@ export default {
     onKeyPress(event) {
       if (event.ctrlKey && event.key === "z") {
         if (this.blockStates.rewind()) {
-          this.restoreState(this.blockStates.get());
+          this.restoreState();
           this.blockStates.print();
         }
       } else if (event.ctrlKey && event.key === "y") {
         if (this.blockStates.forward()) {
-          this.restoreState(this.blockStates.get());
+          this.restoreState();
           this.blockStates.print();
         }
       }
@@ -133,7 +133,7 @@ export default {
     onServerData(data) {
       this.blockStates.push(data, "server-data");
       this.blockStates.print();
-      this.restoreState(this.blockStates.get());
+      this.restoreState();
     },
     updateStatesFromMapping(description) {
       const newState = [];
@@ -143,10 +143,10 @@ export default {
       this.blockStates.push(newState, description);
       this.blockStates.print();
     },
-    restoreState(state) {
+    restoreState() {
       this.mapping = new Map();
       this.$refs.plannerView.resetBlockData();
-      state.forEach((blockData) => {
+      this.blockStates.get().forEach((blockData) => {
         const key = this.$refs.plannerView.addBlockData(
           blockData.startDate,
           blockData.endDate,
@@ -318,49 +318,6 @@ export default {
         rowKeys: ["iingo", "iilse", "ddennis"],
       },
     ]);
-    /*
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 1, 1),
-      new Date(this.year, 1, 28),
-      "anwendungsentwicklung",
-      ["ffarina", "ssebastian", "iingo"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 0, 23),
-      new Date(this.year, 0, 31),
-      "userhelpdesk",
-      ["ddennis", "iingo"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 0, 31),
-      new Date(this.year, 1, 19),
-      "berufschule",
-      ["vvigo", "iilse"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 1, 1),
-      new Date(this.year, 3, 30),
-      "abschlussprojekt",
-      ["ddennis"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 0, 2),
-      new Date(this.year, 0, 4),
-      "projektmanagement",
-      ["ffarina"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 11, 25),
-      new Date(this.year, 11, 31),
-      "einkauf_it_controlling_lizenzmanagement",
-      ["ffarina"]
-    );
-    this.$refs.plannerView.addBlockData(
-      new Date(this.year, 11, 25),
-      new Date(this.year, 11, 30),
-      "einkauf_it_controlling_lizenzmanagement",
-      ["iingo", "iilse", "ddennis"]
-    );*/
   },
 };
 </script>
