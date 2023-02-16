@@ -458,6 +458,7 @@ class TableInteractionService extends Service {
       this._widgets.blockTypeMenu.style.left = `${left}px`;
       this._widgets.blockTypeMenu.style.top = `${top}px`;
       this._widgets.blockTypeMenu.style.transform = "translate(0%, 50%)";
+      this._forceUpdateViewHandle();
     },
   };
   //// INTERACTION STATES
@@ -591,12 +592,6 @@ class TableInteractionService extends Service {
   //// ACTIONS (unabhängig von STATE!)
   _selectAllPlannerBlockOfCurrentBlockId() {
     // add selected-class to all "boxes" belonging to this block
-    console.log(
-      `selecting elements with class 'planner-block--${this._curBlockId}'`
-    );
-    console.log(
-      document.querySelectorAll(`.planner-block--${this._curBlockId}`)
-    );
     Array.from(
       document.querySelectorAll(`.planner-block--${this._curBlockId}`)
     ).forEach((el) => el.classList.add("selected"));

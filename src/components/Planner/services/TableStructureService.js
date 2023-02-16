@@ -30,6 +30,11 @@ class TableStructureService extends Service {
   setTextTesterWidget(textTesterWidget) {
     this._textTesterWidget = textTesterWidget;
   }
+  _blockTypeMenuWidget;
+  // Zu rufen aus Planner.vue
+  setBlockTypeMenuWidget(blockTypeMenuWidget) {
+    this._blockTypeMenuWidget = blockTypeMenuWidget;
+  }
 
   constructor(year) {
     //console.log(`TableStructureService::constructor`);
@@ -640,9 +645,9 @@ class TableStructureService extends Service {
     return nonBlockedDayFillingObjects;
   }
 
-  getBlockTypeEntriesForBlocktypeSelectionMenu(blockTypeMenu) {
-    if (blockTypeMenu) {
-      const { left, right } = blockTypeMenu.getBoundingClientRect();
+  getBlockTypeEntriesForBlocktypeSelectionMenu() {
+    if (this._blockTypeMenuWidget && this._textTesterWidget) {
+      const { left, right } = this._blockTypeMenuWidget.getBoundingClientRect();
       const availableWidthInRem = (right - left) / 10;
       const blockTypeEntriesForBlocktypeSelectionMenu = [];
 
@@ -653,7 +658,7 @@ class TableStructureService extends Service {
         const label = this._chooseLabelForAvailableWidth(
           e.labels,
           availableWidthInRem,
-          blockTypeMenu
+          this._textTesterWidget
         );
 
         blockTypeEntriesForBlocktypeSelectionMenu.push({

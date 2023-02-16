@@ -13,6 +13,8 @@
         @block-added="onBlockAdded"
         @block-deleted="onBlockDeleted"
         @block-updated="onBlockUpdated"
+        @keydown.stop.prevent="onKeyPress($event)"
+        tabindex="-1"
       ></planner>
     </div>
   </main>
@@ -23,6 +25,77 @@ export default {
   data() {
     return {
       year: 2023,
+
+      currentMapping: new Map(),
+
+      blockStates: {
+        head: -1,
+        stack: [],
+        push(state, description) {
+          if (this.head >= 0 && this.head < this.stack.length - 1) {
+            // head points to e previous state
+            // -> truncate stack to this point before applying new state
+            const newstack = [];
+            for (let i = 0; i <= this.head; i++) {
+              newstack.push(this.copyState(this.stack[i]));
+            }
+            this.stack = newstack;
+          }
+          state.description = description;
+          const stateToPush = this.copyState(state);
+
+          this.stack.push(stateToPush);
+          this.head = this.stack.length - 1;
+        },
+        rewind() {
+          if (this.head > 0) {
+            this.head -= 1;
+            return true;
+          }
+          return false;
+        },
+        forward() {
+          if (this.head < this.stack.length - 1) {
+            this.head += 1;
+            return true;
+          }
+          return false;
+        },
+        get() {
+          if (this.head >= 0) return this.stack[this.head];
+        },
+        print() {
+          console.log(`-----\n`);
+          this.stack.forEach((state, idx) => {
+            console.log(
+              `\t${idx}\t${state.description}\tcount: ${state.length}${
+                idx === this.head ? "\t[HEAD]" : ""
+              }`
+            );
+          });
+          console.log(`-----\n`);
+        },
+        copyDate(date) {
+          if (!date) return;
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        },
+        copyBlock(block) {
+          if (!block) return;
+          const startDate = this.copyDate(block.startDate);
+          const endDate = this.copyDate(block.endDate);
+          const type = `${block.type}`;
+          const rowKeys = block.rowKeys.map((k) => `${k}`);
+          return { startDate, endDate, type, rowKeys };
+        },
+        copyState(state) {
+          if (!state) return;
+          const copiedState = state.map((block) => this.copyBlock(block));
+          if (state.description) {
+            copiedState.description = `${state.description}`;
+          }
+          return copiedState;
+        },
+      },
     };
   },
   components: {
@@ -30,13 +103,58 @@ export default {
   },
   methods: {
     onBlockAdded(event) {
-      console.log(`onBlockAdded(): `, event);
+      const { blockId, startDate, endDate, type, rowKeys } = event;
+      this.mapping.set(blockId, { startDate, endDate, type, rowKeys });
+      this.updateStatesFromMapping(`block ${blockId} added`);
     },
     onBlockDeleted(event) {
-      console.log(`onBlockDeleted(): `, event);
+      const { blockId } = event;
+      this.mapping.delete(blockId);
+      this.updateStatesFromMapping(`block ${blockId} deleted`);
     },
     onBlockUpdated(event) {
-      console.log(`onBlockUpdated(): `, event);
+      const { blockId, startDate, endDate, type, rowKeys } = event;
+      this.mapping.set(blockId, { startDate, endDate, type, rowKeys });
+      this.updateStatesFromMapping(`block ${blockId} edited`);
+    },
+    onKeyPress(event) {
+      if (event.ctrlKey && event.key === "z") {
+        if (this.blockStates.rewind()) {
+          this.restoreState(this.blockStates.get());
+          this.blockStates.print();
+        }
+      } else if (event.ctrlKey && event.key === "y") {
+        if (this.blockStates.forward()) {
+          this.restoreState(this.blockStates.get());
+          this.blockStates.print();
+        }
+      }
+    },
+    onServerData(data) {
+      this.blockStates.push(data, "server-data");
+      this.blockStates.print();
+      this.restoreState(this.blockStates.get());
+    },
+    updateStatesFromMapping(description) {
+      const newState = [];
+      this.mapping.forEach((v, k) => {
+        newState.push(v);
+      });
+      this.blockStates.push(newState, description);
+      this.blockStates.print();
+    },
+    restoreState(state) {
+      this.mapping = new Map();
+      this.$refs.plannerView.resetBlockData();
+      state.forEach((blockData) => {
+        const key = this.$refs.plannerView.addBlockData(
+          blockData.startDate,
+          blockData.endDate,
+          blockData.type,
+          blockData.rowKeys
+        );
+        this.mapping.set(key, blockData);
+      });
     },
   },
   created() {},
@@ -156,6 +274,51 @@ export default {
       },
     ]);
 
+    this.onServerData([
+      {
+        startDate: new Date(this.year, 1, 1),
+        endDate: new Date(this.year, 1, 28),
+        type: "anwendungsentwicklung",
+        rowKeys: ["ffarina", "ssebastian", "iingo"],
+      },
+      {
+        startDate: new Date(this.year, 0, 23),
+        endDate: new Date(this.year, 0, 31),
+        type: "userhelpdesk",
+        rowKeys: ["ddennis", "iingo"],
+      },
+      {
+        startDate: new Date(this.year, 0, 31),
+        endDate: new Date(this.year, 1, 19),
+        type: "berufschule",
+        rowKeys: ["vvigo", "iilse"],
+      },
+      {
+        startDate: new Date(this.year, 1, 1),
+        endDate: new Date(this.year, 3, 30),
+        type: "abschlussprojekt",
+        rowKeys: ["ddennis"],
+      },
+      {
+        startDate: new Date(this.year, 0, 2),
+        endDate: new Date(this.year, 0, 4),
+        type: "projektmanagement",
+        rowKeys: ["ffarina"],
+      },
+      {
+        startDate: new Date(this.year, 11, 25),
+        endDate: new Date(this.year, 11, 31),
+        type: "einkauf_it_controlling_lizenzmanagement",
+        rowKeys: ["ffarina"],
+      },
+      {
+        startDate: new Date(this.year, 11, 25),
+        endDate: new Date(this.year, 11, 30),
+        type: "einkauf_it_controlling_lizenzmanagement",
+        rowKeys: ["iingo", "iilse", "ddennis"],
+      },
+    ]);
+    /*
     this.$refs.plannerView.addBlockData(
       new Date(this.year, 1, 1),
       new Date(this.year, 1, 28),
@@ -197,7 +360,7 @@ export default {
       new Date(this.year, 11, 30),
       "einkauf_it_controlling_lizenzmanagement",
       ["iingo", "iilse", "ddennis"]
-    );
+    );*/
   },
 };
 </script>

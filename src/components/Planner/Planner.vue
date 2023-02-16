@@ -77,9 +77,7 @@
         'planner-header-column',
         row.key ? `planner-header-column--${row.key}` : '',
       ]"
-      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects(
-        this.$refs.textTester
-      )"
+      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
       :style="`${row.style_}`"
     >
       {{ row.title }}
@@ -90,9 +88,7 @@
     <!-- Über den Slot werden lediglich Blöcke 'logisch' in den Planner geladen, nicht gerendert -->
     <!-- Rendern der Block-Daten erfolgt nur direkt aus dem Model heraus in diesem div: -->
     <div
-      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects(
-        this.$refs.textTester
-      )"
+      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
       :class="[
         'planner-cell',
         'data-cell',
@@ -155,10 +151,7 @@
     <div class="planner-header-column text-tester" ref="textTester"></div>
     <div class="menu menu--block-type hidden" ref="blockTypeMenu">
       <template
-        v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu(
-          this.$refs.textTester,
-          this.$refs.blockTypeMenu
-        )"
+        v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu()"
       >
         <div
           class="menu-item-block-type"
@@ -244,6 +237,9 @@ export default {
     this.serviceManager.tableStructureService.setTextTesterWidget(
       this.$refs.textTester
     );
+    this.serviceManager.tableStructureService.setBlockTypeMenuWidget(
+      this.$refs.blockTypeMenu
+    );
     this.serviceManager.tableDataService.setUnspecifiedTypeDataColor(
       this.selectionColorValid
     );
@@ -265,7 +261,7 @@ export default {
       this.shared.serviceManager.tableDataService.resetBlockData();
     },
     addBlockData(startDate, endDate, type, rowKeys) {
-      this.shared.serviceManager.tableDataService.importBlockData(
+      return this.shared.serviceManager.tableDataService.importBlockData(
         startDate,
         endDate,
         type,
