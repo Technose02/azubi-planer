@@ -63,10 +63,10 @@ class TableInteractionService extends Service {
   //// EventHandlers
 
   //// PROPERTIES
-  _setContextMenuReferencePoint(event) {
+  _setMenuReferencePoint(event) {
     const containerBounds = this._widgets.container.getBoundingClientRect();
-    this._contextMenuReferencePoint.x = event.clientX - containerBounds.left;
-    this._contextMenuReferencePoint.y = event.clientY - containerBounds.top;
+    this._menuReferencePoint.x = event.clientX - containerBounds.left;
+    this._menuReferencePoint.y = event.clientY - containerBounds.top;
   }
 
   setSelectionColors(colorSelectionValid, colorSelectionInvalid) {
@@ -89,13 +89,13 @@ class TableInteractionService extends Service {
     },
     updateWidgets: () => {
       // Visualizer
-      this._widgets.visualizer.classList.add("hidden");
+      this._widgets.visualizer.classList.add("invisible");
 
       // BlockContextMenu
-      this._widgets.blockContextMenu.classList.add("hidden");
+      this._widgets.blockContextMenu.classList.add("invisible");
 
       // BlockTypeMenu
-      this._widgets.blockTypeMenu.classList.add("hidden");
+      this._widgets.blockTypeMenu.classList.add("invisible");
     },
   };
 
@@ -126,10 +126,11 @@ class TableInteractionService extends Service {
         }
         //
 
-        this._forceUpdateViewHandle();
         this._deselectAllBlocks();
+        this._forceUpdateViewHandle();
         return this._stateIdle;
       } else if (event.target.classList.contains("action--edit")) {
+        this._setMenuReferencePoint(event);
         return this._stateChooseBlockTypeForEdit;
       } else {
         // woanders hingeklickt
@@ -147,20 +148,20 @@ class TableInteractionService extends Service {
     },
     updateWidgets: () => {
       // Visualizer
-      this._widgets.visualizer.classList.add("hidden");
+      this._widgets.visualizer.classList.add("invisible");
 
       // BlockContextMenu
-      this._widgets.blockContextMenu.classList.remove("hidden");
+      this._widgets.blockContextMenu.classList.remove("invisible");
       const menuBounds = this._widgets.blockContextMenu.getBoundingClientRect();
 
-      const { x: refX, y: refY } = this._contextMenuReferencePoint;
+      const { x: refX, y: refY } = this._menuReferencePoint;
       const left = refX - menuBounds.right + menuBounds.left - 5;
       const top = refY - menuBounds.bottom + menuBounds.top - 5;
       this._widgets.blockContextMenu.style.left = `${left}px`;
       this._widgets.blockContextMenu.style.top = `${top}px`;
 
       // BlockTypeMenu
-      this._widgets.blockTypeMenu.classList.add("hidden");
+      this._widgets.blockTypeMenu.classList.add("invisible");
     },
   };
 
@@ -210,10 +211,9 @@ class TableInteractionService extends Service {
         selectedRowKeys
       );
 
-      this._setContextMenuReferencePoint(event);
+      this._setMenuReferencePoint(event);
 
       this._hideVisualizerOverride = false;
-      this._forceUpdateViewHandle();
 
       // hacky: use a 30ms delay to select the newly created block-object, since it won't be "queryable"
       //        instantly
@@ -299,16 +299,16 @@ class TableInteractionService extends Service {
           : this._colorSelectionValid;
       }
       if (this._hideVisualizerOverride) {
-        this._widgets.visualizer.classList.add("hidden");
+        this._widgets.visualizer.classList.add("invisible");
       } else {
-        this._widgets.visualizer.classList.remove("hidden");
+        this._widgets.visualizer.classList.remove("invisible");
       }
 
       // BlockContextMenu
-      this._widgets.blockContextMenu.classList.add("hidden");
+      this._widgets.blockContextMenu.classList.add("invisible");
 
       // BlockTypeMenu
-      this._widgets.blockTypeMenu.classList.add("hidden");
+      this._widgets.blockTypeMenu.classList.add("invisible");
     },
   };
 
@@ -363,8 +363,8 @@ class TableInteractionService extends Service {
       // ein Abbruch hier führt zum Abbruch des Block-Creation-Prozesses, also den bereits
       // importierten Datenblock wieder löschen:
       this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
-      this._deselectAllBlocks();
       this._forceUpdateViewHandle();
+      this._deselectAllBlocks();
       return this._stateIdle;
     },
     onMouseMove: (event, inDataRange) => {
@@ -372,20 +372,19 @@ class TableInteractionService extends Service {
     },
     updateWidgets: () => {
       // Visualizer
-      this._widgets.visualizer.classList.add("hidden");
+      this._widgets.visualizer.classList.add("invisible");
 
       // BlockContextMenu
-      this._widgets.blockContextMenu.classList.add("hidden");
+      this._widgets.blockContextMenu.classList.add("invisible");
 
       // BlockTypeMenu
-      this._widgets.blockTypeMenu.classList.remove("hidden");
       const menuBounds = this._widgets.blockTypeMenu.getBoundingClientRect();
-      const { x: refX, y: refY } = this._contextMenuReferencePoint;
+      const { x: refX, y: refY } = this._menuReferencePoint;
       const left = refX - menuBounds.right + menuBounds.left - 5;
-      const top = refY - menuBounds.bottom + menuBounds.top;
+      const top = refY - (menuBounds.bottom - menuBounds.top) / 2;
       this._widgets.blockTypeMenu.style.left = `${left}px`;
       this._widgets.blockTypeMenu.style.top = `${top}px`;
-      this._widgets.blockTypeMenu.style.transform = "translate(0%, 50%)";
+      this._widgets.blockTypeMenu.classList.remove("invisible");
     },
   };
 
@@ -444,21 +443,19 @@ class TableInteractionService extends Service {
     },
     updateWidgets: () => {
       // Visualizer
-      this._widgets.visualizer.classList.add("hidden");
+      this._widgets.visualizer.classList.add("invisible");
 
       // BlockContextMenu
-      this._widgets.blockContextMenu.classList.add("hidden");
+      this._widgets.blockContextMenu.classList.add("invisible");
 
       // BlockTypeMenu
-      this._widgets.blockTypeMenu.classList.remove("hidden");
       const menuBounds = this._widgets.blockTypeMenu.getBoundingClientRect();
-      const { x: refX, y: refY } = this._contextMenuReferencePoint;
+      const { x: refX, y: refY } = this._menuReferencePoint;
       const left = refX - menuBounds.right + menuBounds.left - 5;
-      const top = refY - menuBounds.bottom + menuBounds.top;
+      const top = refY - (menuBounds.bottom - menuBounds.top) / 2;
       this._widgets.blockTypeMenu.style.left = `${left}px`;
       this._widgets.blockTypeMenu.style.top = `${top}px`;
-      this._widgets.blockTypeMenu.style.transform = "translate(0%, 50%)";
-      this._forceUpdateViewHandle();
+      this._widgets.blockTypeMenu.classList.remove("invisible");
     },
   };
   //// INTERACTION STATES
@@ -471,7 +468,7 @@ class TableInteractionService extends Service {
   _curSelectionInvalid = false;
   _curBlockId = {};
   _hideVisualizerOverride = false;
-  _contextMenuReferencePoint = {
+  _menuReferencePoint = {
     x: -1,
     y: -1,
   };
@@ -613,7 +610,7 @@ class TableInteractionService extends Service {
       !target.classList.contains("unspecified")
     ) {
       this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
-      this._setContextMenuReferencePoint(event);
+      this._setMenuReferencePoint(event);
 
       this._selectAllPlannerBlockOfCurrentBlockId();
 

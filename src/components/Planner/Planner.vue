@@ -146,10 +146,10 @@
     </template>
     <div
       ref="createBlockVisualizer"
-      class="create-block-visualizer hidden"
+      class="create-block-visualizer invisible"
     ></div>
     <div class="planner-header-column text-tester" ref="textTester"></div>
-    <div class="menu menu--block-type hidden" ref="blockTypeMenu">
+    <div class="menu menu--block-type invisible" ref="blockTypeMenu">
       <template
         v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu()"
       >
@@ -162,7 +162,7 @@
         </div></template
       >
     </div>
-    <div class="menu block-context-menu hidden" ref="blockContextMenu">
+    <div class="menu block-context-menu invisible" ref="blockContextMenu">
       <icon-edit
         class="menu-item block-context-menu-item block-context-menu-item--edit-block action--edit"
       ></icon-edit>
