@@ -171,6 +171,8 @@ export default {
         if (this.differentialState.forward()) {
           this.differentialState.print();
         }
+      } else if (event.key === "Delete") {
+        this.$refs.plannerView.onDeleteKeyPressed();
       }
     },
 

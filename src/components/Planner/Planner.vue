@@ -292,6 +292,10 @@ export default {
       this.shared.serviceManager.tableDataService.resetBlockTypes(blockTypes);
     },
 
+    onDeleteKeyPressed() {
+      this.shared.serviceManager.tableInteractionService.onDeleteKeyPressed();
+    },
+
     onBlockAdded(event) {
       this.$emit("block-added", event);
     },

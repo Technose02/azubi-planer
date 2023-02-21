@@ -60,6 +60,14 @@ class TableInteractionService extends Service {
   setOnBlockUpdatedHandler(onBlockUpdatedHandler) {
     this._onBlockUpdatedHandler = onBlockUpdatedHandler;
   }
+
+  onDeleteKeyPressed() {
+    const prev = this._currentState.name();
+    const next = this._currentState.onDeleteKeyPressed();
+    if (next) this._currentState = next;
+    if (this._currentState.name() !== prev)
+      console.log(`state-transition: ${prev} -> ${this._currentState.name()}`);
+  }
   //// EventHandlers
 
   //// PROPERTIES
@@ -78,6 +86,7 @@ class TableInteractionService extends Service {
   //// INTERACTION STATES (gemäß State-Pattern)
   _stateIdle = {
     name: () => "stateIdle",
+    onDeleteKeyPressed: () => {},
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       return this._leftClickIdle(event, inDataRange, weekHeaderField);
     },
@@ -101,34 +110,41 @@ class TableInteractionService extends Service {
 
   _stateBlockSelected = {
     name: () => "stateBlockSelected",
+    _delete: () => {
+      // hole noch einmal Blockdaten und rowKeys um diese ggf. noch an den onBlockDeletedHandler übergeben zu können
+      const { startDate, endDate, type } =
+        this._serviceRegister.tableDataService.getBlockData(this._curBlockId);
+      const rowKeys = this._serviceRegister.tableDataService.getAssignedRowKeys(
+        this._curBlockId
+      );
+
+      // lösche eintrag
+      this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
+
+      // fire onBlockDeletedHandler if set
+      if (this._onBlockDeletedHandler) {
+        this._onBlockDeletedHandler({
+          blockId: this._curBlockId,
+          startDate,
+          endDate,
+          type,
+          rowKeys,
+        });
+      }
+      //
+
+      this._deselectAllBlocks();
+      this._forceUpdateViewHandle();
+      return this._stateIdle;
+    },
+    onDeleteKeyPressed: () => {
+      const newState = this._stateBlockSelected._delete();
+      newState.updateWidgets();
+      return newState;
+    },
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       if (event.target.classList.contains("action--delete")) {
-        // hole noch einmal Blockdaten und rowKeys um diese ggf. noch an den onBlockDeletedHandler übergeben zu können
-        const { startDate, endDate, type } =
-          this._serviceRegister.tableDataService.getBlockData(this._curBlockId);
-        const rowKeys =
-          this._serviceRegister.tableDataService.getAssignedRowKeys(
-            this._curBlockId
-          );
-
-        // lösche eintrag
-        this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
-
-        // fire onBlockDeletedHandler if set
-        if (this._onBlockDeletedHandler) {
-          this._onBlockDeletedHandler({
-            blockId: this._curBlockId,
-            startDate,
-            endDate,
-            type,
-            rowKeys,
-          });
-        }
-        //
-
-        this._deselectAllBlocks();
-        this._forceUpdateViewHandle();
-        return this._stateIdle;
+        return this._stateBlockSelected._delete();
       } else if (event.target.classList.contains("action--edit")) {
         this._setMenuReferencePoint(event);
         return this._stateChooseBlockTypeForEdit;
@@ -167,6 +183,7 @@ class TableInteractionService extends Service {
 
   _stateSelectForCreate = {
     name: () => "stateSelectForCreate",
+    onDeleteKeyPressed: () => {},
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       if (weekHeaderField) {
         this._toggleWeekHeaderFieldCollapseState(event);
@@ -315,6 +332,7 @@ class TableInteractionService extends Service {
 
   _stateChooseBlockTypeForCreate = {
     name: () => "stateChooseBlockTypeForCreate",
+    onDeleteKeyPressed: () => {},
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       if (event.target.classList.contains("menu-item-block-type")) {
         const blockTypeToSet = this._getTypeOfSelectedBlockTypeMenuItem(
@@ -391,6 +409,7 @@ class TableInteractionService extends Service {
 
   _stateChooseBlockTypeForEdit = {
     name: () => "stateChooseBlockTypeForEdit",
+    onDeleteKeyPressed: () => {},
     onLeftClick: (event, inDataRange, weekHeaderField) => {
       if (event.target.classList.contains("menu-item-block-type")) {
         const blockTypeToSet = this._getTypeOfSelectedBlockTypeMenuItem(
