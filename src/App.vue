@@ -38,7 +38,7 @@ export default {
         head: -1,
         stack: [],
         push(diffState) {
-          if (this.head >= 0 && this.head < this.stack.length - 1) {
+          if (this.head < this.stack.length - 1) {
             // head points to e previous state
             // -> truncate stack to this point before applying new state
             this.stack.splice(this.head + 1, this.stack.length - 1 - this.head);
@@ -315,6 +315,14 @@ export default {
           labels: ["Datenbanken, Middleware und Appliances", "DMA"],
         },
       },
+      {
+        type: "gesetzlicher_feiertag",
+        locked: true,
+        data: {
+          color: "#DE90C8",
+          labels: ["Feiertag"],
+        },
+      },
     ]);
 
     this.onServerData([
@@ -355,17 +363,32 @@ export default {
       },
       {
         blockId: "server-data-06",
-        startDate: new Date(this.year, 11, 25),
+        startDate: new Date(this.year, 11, 27),
         endDate: new Date(this.year, 11, 31),
         type: "einkauf_it_controlling_lizenzmanagement",
         rowKeys: ["ffarina"],
       },
       {
         blockId: "server-data-07",
-        startDate: new Date(this.year, 11, 25),
+        startDate: new Date(this.year, 11, 27),
         endDate: new Date(this.year, 11, 30),
         type: "einkauf_it_controlling_lizenzmanagement",
         rowKeys: ["iingo", "iilse", "ddennis"],
+      },
+      {
+        blockId: "server-data-08",
+        startDate: new Date(this.year, 11, 25),
+        endDate: new Date(this.year, 11, 26),
+        type: "gesetzlicher_feiertag",
+        rowKeys: [
+          "ffarina",
+          "ssebastian",
+          "iingo",
+          "iilse",
+          "ddennis",
+          "vvigo",
+          "ddanzo",
+        ],
       },
     ]);
   },
