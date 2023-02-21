@@ -53,17 +53,20 @@ class TableStructureService extends Service {
     availableWidthInRem,
     refElementForFontsize
   ) {
+    if (!labels || labels.length === 0) return "";
     const labelList = [...labels];
-    // dynamisch aus dem kleinsten Label weitere generische Kürzungen ableiten
-    // ...aus Label-Beginn mit angehängten "..."
     const lastLabel = labelList.at(-1);
-    for (let k = 3; k < lastLabel.length; k++) {
-      labelList.push(`${lastLabel.slice(0, -k)}...`);
+    if (lastLabel.length > 0) {
+      // wenn das kürzeste Label nicht der Leerstring ist, dann dynamisch hieraus generische Kürzungen ableiten
+      // ...aus Label-Beginn mit angehängten "..."
+      for (let k = 3; k < lastLabel.length; k++) {
+        labelList.push(`${lastLabel.slice(0, -k)}...`);
+      }
+      // ...aus dem ersten Buchstaben und nur einem .
+      labelList.push(lastLabel[0] + ".");
+      // ...und als Letze Möglichkeit nur den Anfangsbuchstaben (in groß)
+      labelList.push(lastLabel[0].toUpperCase());
     }
-    // ...aus dem ersten Buchstaben und nur einem .
-    labelList.push(lastLabel[0] + ".");
-    // ...und als Letze Möglichkeit nur den Anfangsbuchstaben (in groß)
-    labelList.push(lastLabel[0].toUpperCase());
 
     let label = labelList[0];
     if (refElementForFontsize) {

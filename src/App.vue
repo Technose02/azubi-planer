@@ -320,7 +320,7 @@ export default {
         locked: true,
         data: {
           color: "#DE90C8",
-          labels: ["Feiertag"],
+          labels: ["gesetzlicher Feiertag", "Feiertag", ""],
         },
       },
     ]);
