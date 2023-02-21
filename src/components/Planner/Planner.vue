@@ -260,6 +260,7 @@ export default {
     resetBlockData() {
       this.shared.serviceManager.tableDataService.resetBlockData();
     },
+
     addBlockData(blockId, startDate, endDate, type, rowKeys) {
       return this.shared.serviceManager.tableDataService.importBlockData(
         blockId,

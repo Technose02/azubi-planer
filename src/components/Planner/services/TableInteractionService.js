@@ -604,6 +604,12 @@ class TableInteractionService extends Service {
       !target.classList.contains("unspecified")
     ) {
       this._curBlockId = this._getIdOfSelectedPlannerBlock(target);
+      const { type } = this._serviceRegister.tableDataService.getBlockData(
+        this._curBlockId
+      );
+      if (this._serviceRegister.tableDataService.isBlockTypeLocked(type))
+        return this._stateIdle;
+
       this._setMenuReferencePoint(event);
 
       this._selectAllPlannerBlockOfCurrentBlockId();

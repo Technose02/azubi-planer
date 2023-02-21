@@ -201,6 +201,7 @@ export default {
     this.$refs.plannerView.resetBlockTypes([
       {
         type: "urlaub",
+        locked: false,
         data: {
           color: "#FFFF00",
           labels: ["Urlaub"],
@@ -208,6 +209,7 @@ export default {
       },
       {
         type: "anwendungsentwicklung",
+        locked: false,
         data: {
           color: "#E2EFDA",
           labels: ["Anwendungsentwicklung", "AE"],
@@ -215,6 +217,7 @@ export default {
       },
       {
         type: "userhelpdesk",
+        locked: false,
         data: {
           color: "#F4B084",
           labels: ["User Help Desk", "UHD"],
@@ -222,6 +225,7 @@ export default {
       },
       {
         type: "berufschule",
+        locked: true,
         data: {
           color: "#FEB0E8",
           labels: ["Berufschule", "Schule"],
@@ -229,6 +233,7 @@ export default {
       },
       {
         type: "applikationsbetrieb",
+        locked: false,
         data: {
           color: "#FF3399",
           labels: ["Applikationsbetrieb"],
@@ -236,6 +241,7 @@ export default {
       },
       {
         type: "abschlussprojekt",
+        locked: false,
         data: {
           color: "#8EA9DB",
           labels: ["Abschlussprojekt", "Projekt"],
@@ -243,6 +249,7 @@ export default {
       },
       {
         type: "backoffice",
+        locked: false,
         data: {
           color: "#FFEB9C",
           labels: ["Backoffice"],
@@ -250,6 +257,7 @@ export default {
       },
       {
         type: "personalmanagement",
+        locked: false,
         data: {
           color: "#2F75B5",
           labels: ["Personalmanagement", "HR"],
@@ -257,6 +265,7 @@ export default {
       },
       {
         type: "projektmanagement",
+        locked: false,
         data: {
           color: "#FFF2CC",
           labels: ["Projektmanagement", "PJM"],
@@ -264,6 +273,7 @@ export default {
       },
       {
         type: "einkauf_it_controlling_lizenzmanagement",
+        locked: false,
         data: {
           color: "#548235",
           labels: [
@@ -275,6 +285,7 @@ export default {
       },
       {
         type: "it_security",
+        locked: false,
         data: {
           color: "#5B9BD5",
           labels: ["IT-Security"],
@@ -282,6 +293,7 @@ export default {
       },
       {
         type: "it_strategy",
+        locked: false,
         data: {
           color: "#BF8F00",
           labels: ["IT-Strategy"],
@@ -289,6 +301,7 @@ export default {
       },
       {
         type: "recht_compliance_managementsysteme",
+        locked: false,
         data: {
           color: "#7030A0",
           labels: ["Recht, Compliance und Managementsysteme", "RCM"],
@@ -296,6 +309,7 @@ export default {
       },
       {
         type: "datenbanken_middleware_appliances",
+        locked: false,
         data: {
           color: "#FCE4D6",
           labels: ["Datenbanken, Middleware und Appliances", "DMA"],

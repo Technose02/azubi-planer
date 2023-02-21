@@ -45,12 +45,15 @@ class TableDataService extends Service {
 
   resetBlockTypes(blockTypes) {
     this._registeredBlockTypes = new Map();
-    this._registeredBlockTypes.set(
-      this._UNSPECIFIED_TYPE,
-      this._UNSPECIFIED_TYPE_DATA
-    );
+    this._registeredBlockTypes.set(this._UNSPECIFIED_TYPE, {
+      locked: true,
+      data: this._UNSPECIFIED_TYPE_DATA,
+    });
     blockTypes.forEach((entry) => {
-      this._registeredBlockTypes.set(entry.type, entry.data);
+      this._registeredBlockTypes.set(entry.type, {
+        locked: entry.locked,
+        data: entry.data,
+      });
     });
   }
 
@@ -72,14 +75,21 @@ class TableDataService extends Service {
     return this._registeredRowTitles;
   }
 
+  isBlockTypeLocked(type) {
+    assert(this._registeredBlockTypes.has(type));
+    return this._registeredBlockTypes.get(type).locked;
+  }
+
   getRegisteredBlockTypeEntriesForBlocktypeSelectionMenu() {
     const blockTypeEntries = [];
     for (let [k, v] of this._registeredBlockTypes) {
-      blockTypeEntries.push({
-        type: k,
-        color: v.color,
-        labels: v.labels,
-      });
+      if (!v.locked) {
+        blockTypeEntries.push({
+          type: k,
+          color: v.data.color,
+          labels: v.data.labels,
+        });
+      }
     }
     return blockTypeEntries.filter((b) => b.type !== this._UNSPECIFIED_TYPE);
   }
@@ -255,7 +265,7 @@ class TableDataService extends Service {
       //////////////////
       dataRowIndicesClusters.forEach((dataRowIndices) => {
         const block = this._blockData.get(blockId);
-        const blockData = this._registeredBlockTypes.get(block.type);
+        const blockType = this._registeredBlockTypes.get(block.type);
 
         const row_key_list = dataRowIndices
           .map((i) => this._registeredRowKeys[i])
@@ -264,8 +274,8 @@ class TableDataService extends Service {
           id: blockId,
           startDayOfYearIdx: block.startDayOfYearIdx,
           endDayOfYearIdx: block.endDayOfYearIdx,
-          labels: blockData.labels,
-          color: blockData.color,
+          labels: blockType.data.labels,
+          color: blockType.data.color,
           row_key_list: row_key_list,
           start_data_row_index: dataRowIndices[0],
           end_data_row_index: dataRowIndices.at(-1),
