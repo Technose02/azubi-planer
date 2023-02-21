@@ -4,10 +4,12 @@ import GridAssistant from "./../GridAssistant";
 
 class TableStructureService extends Service {
   // dies ist die Anzahl an Grid-Columns für einen Tag des Kalenders
-  // Es sind 7, da im Falle kollabierter KWs eine Spalte, die visuell die Breite eines Tages
-  // im ausgeklappten Fall hat, die Daten einer Woche, also 7 Tage, qualitativ geeignet
-  // anordnen muss
-  _BASE_COLUMN_WIDTH = 7;
+  // Es sind so viele wie Tag in einer Woche darzustellen sind, da im Falle
+  // kollabierter KWs eine Spalte, die visuell die Breite eines Tages im
+  // ausgeklappten Fall hat, die Daten einer Woche, qualitativ geeignet anordnen muss
+  // Der Wert wird im Ctor gesetzt
+  _BASE_COLUMN_WIDTH;
+  _DAYS_IN_WEEK;
 
   // dies ist die Anzahl von Kopf-Zeilen vor dem Datenbereich
   // das Layout sieht aktuell keine weiteren Kopf-Zeilen vor
@@ -36,10 +38,13 @@ class TableStructureService extends Service {
     this._blockTypeMenuWidget = blockTypeMenuWidget;
   }
 
-  constructor(year) {
+  constructor(year, weekDayMask) {
     //console.log(`TableStructureService::constructor`);
     super();
     this._year = year;
+    this._weekDayMask = weekDayMask;
+    this._DAYS_IN_WEEK = this._weekDayMask.length;
+    this._BASE_COLUMN_WIDTH = this._DAYS_IN_WEEK;
   }
 
   _init() {
@@ -114,6 +119,10 @@ class TableStructureService extends Service {
       this.HEADER_COLUMNS + this.getNumberOfLogicalDataColumns(),
       this._BASE_COLUMN_WIDTH
     );
+  }
+
+  getWeekdayMask() {
+    return this._weekDayMask;
   }
 
   getGridAssistant() {
@@ -208,7 +217,7 @@ class TableStructureService extends Service {
               ];
             }
           );
-          dataGridColumnOffset += this._BASE_COLUMN_WIDTH * 7; // 7 Tage in einer Woche
+          dataGridColumnOffset += this._BASE_COLUMN_WIDTH * this._DAYS_IN_WEEK;
         }
       }
     );
@@ -416,7 +425,7 @@ class TableStructureService extends Service {
     // kollabierten Woche nur der erste und der letzte der ursprünglichen sieben Tage bleibt
     // Bei dieser Wahl können noch immer Meta-Aussagen über gesamten Wochenbereich bestimmt werden, aber
     // gleichzeitig ist eindeutig feststellbar, dass es sich um eine kollabierte Woche handelt
-    // (immer 2Tage! Nicht kollabiert: immer 7 Tage!)
+    // (immer 2Tage! Nicht kollabiert: immer _DAYS_IN_WEEK Tage!)
     const filteredDaysInWeekAsIndices =
       entityArrays.daysInWeekAsIndicesOfDayStructure.map(
         (daysInWeekAsIdx, idx) =>
@@ -681,8 +690,8 @@ class TableStructureService extends Service {
   }
 }
 
-const createTableStructureService = function (year) {
-  return new TableStructureService(year);
+const createTableStructureService = function (year, weekDayMask) {
+  return new TableStructureService(year, weekDayMask);
 };
 
 export default createTableStructureService;

@@ -203,7 +203,7 @@ export default {
   created() {
     //console.log("Planner -- created");
     // Hier und nur hier wird der ServiceManager initialisiert
-    this.serviceManager = initServices(this.year, [], []);
+    this.serviceManager = initServices(this.year, [0, 1, 2, 3, 4, 5, 6]);
     this.serviceManager.tableInteractionService.setForceUpdate(
       this.$forceUpdate
     );

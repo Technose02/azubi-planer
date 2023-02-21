@@ -563,7 +563,9 @@ class TableInteractionService extends Service {
         .dayStructures[dayOfYearIdx];
     const dayOfYear = dayStructure.day_of_year;
     const weekIdx = dayStructure.in_week;
-    const dayOfWeek = dayStructure.day_of_week;
+    const weekDayMask =
+      this._serviceRegister.tableStructureService.getWeekdayMask();
+    const wdIdx = weekDayMask.indexOf(dayStructure.day_of_week);
 
     // try to get field by day of year (day in non-collapsed week)
     let field = document.querySelector(
@@ -578,8 +580,8 @@ class TableInteractionService extends Service {
       `.collapsed.planner-header-row-day.week--${weekIdx}`
     );
     const { left, right } = field.getBoundingClientRect();
-    const left_ = left + (dayOfWeek / 7) * (right - left);
-    const right_ = left + ((dayOfWeek + 1) / 7) * (right - left);
+    const left_ = left + (wdIdx / weekDayMask.length) * (right - left);
+    const right_ = left + ((wdIdx + 1) / weekDayMask.length) * (right - left);
     return [left_, right_];
   }
   _getFieldBoundsByRowKey(rowKey) {

@@ -12,10 +12,10 @@ Er stellt sicher, dass jede Service instanz Zugriff auf das Register hat und ist
 reactive-Anteil, der zwischen den Komponenten geteilt wird
 */
 
-const initServices = function (year) {
+const initServices = function (year, weekDayMask) {
   // Service-Instanzen erstellen
   const calenderService = createCalenderService();
-  const tableStructureService = createTableStructureService(year);
+  const tableStructureService = createTableStructureService(year, weekDayMask);
   const tableDataService = createTableDataService();
   const cacheService = createCacheService();
   const tableStateService = createTableStateService();
