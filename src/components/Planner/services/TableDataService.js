@@ -35,7 +35,7 @@ class TableDataService extends Service {
   _getNextBlockId() {
     const blockId = this._blockIdCntr;
     this._blockIdCntr += 1;
-    return `block-${blockId}`;
+    return `internal-${blockId}`;
   }
 
   resetDataHeaderRows(dataHeaderRows) {
@@ -85,7 +85,7 @@ class TableDataService extends Service {
   }
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
-  importBlockData(startDate, endDate, type, rowKeys) {
+  importBlockData(blockId, startDate, endDate, type, rowKeys) {
     // ist der type bekannt?
     if (!this._registeredBlockTypes.has(type)) {
       console.log(
@@ -148,9 +148,8 @@ class TableDataService extends Service {
       endDayOfYearIdx = dayStructures.length - 1;
     }
 
-    // Generiere eine BlockID und füge den Block hinzu
-    //const blockId = `${type}_${startDayOfYearIdx}-${endDayOfYearIdx}`;
-    const blockId = this._getNextBlockId();
+    // Füge den Block hinzu, generiere ggf. vorher eine BlockID falls keine mitgegeben wurde
+    const blockId_ = blockId ?? this._getNextBlockId();
     const blockDataToSet = {
       startDate,
       endDate,
@@ -158,12 +157,12 @@ class TableDataService extends Service {
       endDayOfYearIdx,
       type,
     };
-    this._blockData.set(blockId, blockDataToSet);
+    this._blockData.set(blockId_, blockDataToSet);
 
     // Füge Zuordnungen gemäß rowKeys-Parameter ohne Duplikate hinzu
-    const mappings = this._assignedBlocks.get(blockId) ?? [];
-    this._assignedBlocks.set(blockId, [...new Set([...mappings, ...rowKeys])]);
-    return blockId;
+    const mappings = this._assignedBlocks.get(blockId_) ?? [];
+    this._assignedBlocks.set(blockId_, [...new Set([...mappings, ...rowKeys])]);
+    return blockId_;
   }
 
   // Setzt den BlockType eines vorhandenen Blocks gemäß Parameter

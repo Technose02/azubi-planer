@@ -205,6 +205,7 @@ class TableInteractionService extends Service {
       }
 
       this._curBlockId = this._serviceRegister.tableDataService.importBlockData(
+        undefined,
         startDay.date_object,
         endDay.date_object,
         this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
@@ -396,6 +397,10 @@ class TableInteractionService extends Service {
           event.target
         );
         if (blockTypeToSet) {
+          const { type } = this._serviceRegister.tableDataService.getBlockData(
+            this._curBlockId
+          );
+
           this._serviceRegister.tableDataService.updateBlockType(
             this._curBlockId,
             blockTypeToSet
@@ -403,21 +408,10 @@ class TableInteractionService extends Service {
 
           // fire onBlockUpdatedHandler if set
           if (this._onBlockUpdatedHandler) {
-            const { startDate, endDate } =
-              this._serviceRegister.tableDataService.getBlockData(
-                this._curBlockId
-              );
-            const rowKeys =
-              this._serviceRegister.tableDataService.getAssignedRowKeys(
-                this._curBlockId
-              );
-
             this._onBlockUpdatedHandler({
               blockId: this._curBlockId,
-              startDate,
-              endDate,
-              type: blockTypeToSet,
-              rowKeys,
+              oldType: type,
+              newType: blockTypeToSet,
             });
           }
           //

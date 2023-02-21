@@ -21,6 +21,12 @@
 </template>
 <script>
 import Planner from "./components/Planner/Planner.vue";
+
+const copyDate = function (date) {
+  if (!date) return;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
 export default {
   data() {
     return {
@@ -28,27 +34,21 @@ export default {
 
       currentMapping: new Map(),
 
-      blockStates: {
+      differentialState: {
         head: -1,
         stack: [],
-        push(state, description) {
+        push(diffState) {
           if (this.head >= 0 && this.head < this.stack.length - 1) {
             // head points to e previous state
             // -> truncate stack to this point before applying new state
-            const newstack = [];
-            for (let i = 0; i <= this.head; i++) {
-              newstack.push(this.copyState(this.stack[i]));
-            }
-            this.stack = newstack;
+            this.stack.splice(this.head + 1, this.stack.length - 1 - this.head);
           }
-          state.description = description;
-          const stateToPush = this.copyState(state);
-
-          this.stack.push(stateToPush);
+          this.stack.push(diffState);
           this.head = this.stack.length - 1;
         },
         rewind() {
-          if (this.head > 0) {
+          if (this.head >= 0) {
+            this.stack[this.head].undo();
             this.head -= 1;
             return true;
           }
@@ -57,43 +57,21 @@ export default {
         forward() {
           if (this.head < this.stack.length - 1) {
             this.head += 1;
+            this.stack[this.head].redo();
             return true;
           }
           return false;
         },
-        get() {
-          if (this.head >= 0) return this.stack[this.head];
-        },
         print() {
           console.log(`-----\n`);
-          this.stack.forEach((state, idx) => {
+          this.stack.forEach((diffState, idx) => {
             console.log(
-              `\t${idx}\t${state.description}\tcount: ${state.length}${
+              `\t${idx}\t${diffState.description}${
                 idx === this.head ? "\t[HEAD]" : ""
               }`
             );
           });
           console.log(`-----\n`);
-        },
-        copyDate(date) {
-          if (!date) return;
-          return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        },
-        copyBlock(block) {
-          if (!block) return;
-          const startDate = this.copyDate(block.startDate);
-          const endDate = this.copyDate(block.endDate);
-          const type = `${block.type}`;
-          const rowKeys = block.rowKeys.map((k) => `${k}`);
-          return { startDate, endDate, type, rowKeys };
-        },
-        copyState(state) {
-          if (!state) return;
-          const copiedState = state.map((block) => this.copyBlock(block));
-          if (state.description) {
-            copiedState.description = `${state.description}`;
-          }
-          return copiedState;
         },
       },
     };
@@ -104,57 +82,108 @@ export default {
   methods: {
     onBlockAdded(event) {
       const { blockId, startDate, endDate, type, rowKeys } = event;
-      this.mapping.set(blockId, { startDate, endDate, type, rowKeys });
-      this.updateStatesFromMapping(`block ${blockId} added`);
+      this.differentialState.push({
+        redo() {
+          this.plannerView.addBlockData(
+            this.blockData.blockId,
+            this.blockData.startDate,
+            this.blockData.endDate,
+            this.blockData.type,
+            this.blockData.rowKeys
+          );
+        },
+        undo() {
+          this.plannerView.deleteBlock(this.blockData.blockId);
+        },
+        description: `block ${blockId} added`,
+        blockData: {
+          blockId: `${blockId}`,
+          startDate: copyDate(startDate),
+          endDate: copyDate(endDate),
+          type: `${type}`,
+          rowKeys: rowKeys.map((rk) => `${rk}`),
+        },
+        plannerView: this.$refs.plannerView,
+      });
+      this.differentialState.print();
     },
+
     onBlockDeleted(event) {
-      const { blockId } = event;
-      this.mapping.delete(blockId);
-      this.updateStatesFromMapping(`block ${blockId} deleted`);
-    },
-    onBlockUpdated(event) {
       const { blockId, startDate, endDate, type, rowKeys } = event;
-      this.mapping.set(blockId, { startDate, endDate, type, rowKeys });
-      this.updateStatesFromMapping(`block ${blockId} edited`);
+      this.differentialState.push({
+        redo() {
+          this.plannerView.deleteBlock(this.blockData.blockId);
+        },
+        undo() {
+          this.plannerView.addBlockData(
+            this.blockData.blockId,
+            this.blockData.startDate,
+            this.blockData.endDate,
+            this.blockData.type,
+            this.blockData.rowKeys
+          );
+        },
+        description: `block ${blockId} deleted`,
+        blockData: {
+          blockId: `${blockId}`,
+          startDate: copyDate(startDate),
+          endDate: copyDate(endDate),
+          type: `${type}`,
+          rowKeys: rowKeys.map((rk) => `${rk}`),
+        },
+        plannerView: this.$refs.plannerView,
+      });
+      this.differentialState.print();
     },
+
+    onBlockUpdated(event) {
+      const { blockId, oldType, newType } = event;
+      this.differentialState.push({
+        redo() {
+          this.plannerView.updateBlockType(
+            this.blockData.blockId,
+            this.blockData.newType
+          );
+        },
+        undo() {
+          this.plannerView.updateBlockType(
+            this.blockData.blockId,
+            this.blockData.oldType
+          );
+        },
+        description: `updated type of block ${blockId}`,
+        blockData: {
+          blockId: `${blockId}`,
+          oldType: `${oldType}`,
+          newType: `${newType}`,
+        },
+        plannerView: this.$refs.plannerView,
+      });
+      this.differentialState.print();
+    },
+
     onKeyPress(event) {
       if (event.ctrlKey && event.key === "z") {
-        if (this.blockStates.rewind()) {
-          this.restoreState();
-          this.blockStates.print();
+        if (this.differentialState.rewind()) {
+          this.differentialState.print();
         }
       } else if (event.ctrlKey && event.key === "y") {
-        if (this.blockStates.forward()) {
-          this.restoreState();
-          this.blockStates.print();
+        if (this.differentialState.forward()) {
+          this.differentialState.print();
         }
       }
     },
+
     onServerData(data) {
-      this.blockStates.push(data, "server-data");
-      this.blockStates.print();
-      this.restoreState();
-    },
-    updateStatesFromMapping(description) {
-      const newState = [];
-      this.mapping.forEach((v, k) => {
-        newState.push(v);
-      });
-      this.blockStates.push(newState, description);
-      this.blockStates.print();
-    },
-    restoreState() {
-      this.mapping = new Map();
-      this.$refs.plannerView.resetBlockData();
-      this.blockStates.get().forEach((blockData) => {
-        const key = this.$refs.plannerView.addBlockData(
-          blockData.startDate,
-          blockData.endDate,
-          blockData.type,
-          blockData.rowKeys
-        );
-        this.mapping.set(key, blockData);
-      });
+      data.forEach((d) =>
+        this.$refs.plannerView.addBlockData(
+          d.blockId,
+          d.startDate,
+          d.endDate,
+          d.type,
+          d.rowKeys
+        )
+      );
     },
   },
   created() {},
@@ -276,42 +305,49 @@ export default {
 
     this.onServerData([
       {
+        blockId: "server-data-01",
         startDate: new Date(this.year, 1, 1),
         endDate: new Date(this.year, 1, 28),
         type: "anwendungsentwicklung",
         rowKeys: ["ffarina", "ssebastian", "iingo"],
       },
       {
+        blockId: "server-data-02",
         startDate: new Date(this.year, 0, 23),
         endDate: new Date(this.year, 0, 31),
         type: "userhelpdesk",
         rowKeys: ["ddennis", "iingo"],
       },
       {
+        blockId: "server-data-03",
         startDate: new Date(this.year, 0, 31),
         endDate: new Date(this.year, 1, 19),
         type: "berufschule",
         rowKeys: ["vvigo", "iilse"],
       },
       {
+        blockId: "server-data-04",
         startDate: new Date(this.year, 1, 1),
         endDate: new Date(this.year, 3, 30),
         type: "abschlussprojekt",
         rowKeys: ["ddennis"],
       },
       {
+        blockId: "server-data-05",
         startDate: new Date(this.year, 0, 2),
         endDate: new Date(this.year, 0, 4),
         type: "projektmanagement",
         rowKeys: ["ffarina"],
       },
       {
+        blockId: "server-data-06",
         startDate: new Date(this.year, 11, 25),
         endDate: new Date(this.year, 11, 31),
         type: "einkauf_it_controlling_lizenzmanagement",
         rowKeys: ["ffarina"],
       },
       {
+        blockId: "server-data-07",
         startDate: new Date(this.year, 11, 25),
         endDate: new Date(this.year, 11, 30),
         type: "einkauf_it_controlling_lizenzmanagement",
