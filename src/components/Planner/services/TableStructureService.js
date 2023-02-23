@@ -439,7 +439,8 @@ class TableStructureService extends Service {
     weeksArray.forEach((dayStructureIndices, weekNumber) => {
       const weekName =
         weekNumber >= 1 && weekNumber <= 52
-          ? `KW ${weekNumber.toString().padStart(2, "0")}`
+          ? //? `KW ${weekNumber.toString().padStart(2, "0")}`
+            `${weekNumber.toString().padStart(2, "0")}`
           : "";
 
       const indexOfFirstDayCurrentWeek = dayStructureIndices[0];
