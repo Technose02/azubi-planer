@@ -257,19 +257,22 @@ class TableStructureService extends Service {
     return dataGridColumnsForDayOfYear;
   }
 
-  getGridIntervalForDayOfYear(dayOfYearIdx, earlier) {
+  _getBestMatchingDayOfYearIdxForIntervalMapping(dayOfYearIdx, earlierFlag) {
     const dayOfYearToGridIntervalMapping =
       this._getDayOfYearToGridIntervalMapping();
-    const ret = dayOfYearToGridIntervalMapping[dayOfYearIdx];
-    if (ret) return ret;
-    if (earlier) {
+    let interval = dayOfYearToGridIntervalMapping[dayOfYearIdx];
+    if (interval) return dayOfYearIdx;
+
+    if (earlierFlag) {
       for (
         let cur_dayOfYearIdx = dayOfYearIdx - 1;
         cur_dayOfYearIdx >= Math.max(0, dayOfYearIdx - this._DAYS_IN_WEEK + 1);
         cur_dayOfYearIdx--
       ) {
-        const ret = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
-        if (ret) return ret;
+        interval = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
+        if (interval) {
+          return cur_dayOfYearIdx;
+        }
       }
       return undefined;
     }
@@ -283,10 +286,23 @@ class TableStructureService extends Service {
       );
       cur_dayOfYearIdx++
     ) {
-      const ret = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
-      if (ret) return ret;
+      const interval = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
+      if (interval) {
+        return cur_dayOfYearIdx;
+      }
     }
     return undefined;
+  }
+
+  getGridIntervalForDayOfYear(dayOfYearIdx, earlierFlag) {
+    const dayOfYearToGridIntervalMapping =
+      this._getDayOfYearToGridIntervalMapping();
+    const matchingDayOfYearIdx =
+      this._getBestMatchingDayOfYearIdxForIntervalMapping(
+        dayOfYearIdx,
+        earlierFlag
+      );
+    return dayOfYearToGridIntervalMapping[matchingDayOfYearIdx];
   }
 
   // Funktioniert, könnte aber performanter umgesetzt werden (TODO)
@@ -321,7 +337,10 @@ class TableStructureService extends Service {
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
     let k = 0;
-    calenderWeeksCollapsedState.forEach((flag, idx) => {
+
+    const startIndex = calenderWeeksCollapsedState.length - 53;
+
+    calenderWeeksCollapsedState.slice(startIndex).forEach((flag, idx) => {
       flag
         ? (k += Math.min(this._DAYS_IN_WEEK, 1) * this._BASE_COLUMN_WIDTH)
         : (k += this._DAYS_IN_WEEK * this._BASE_COLUMN_WIDTH);
@@ -372,23 +391,36 @@ class TableStructureService extends Service {
       if (monthNumberToPush === 13) monthNumberToPush = 1; // ist zwar aus dem Folgejahr und kriegt keinen Text, soll durch CSS wie Januar coloriert werden
 
       const indexOfFirstDayCurrentMonth = dayStructureIndices[0];
-      const startColumn =
-        this.HEADER_COLUMNS +
-        this.getGridIntervalForDayOfYear(indexOfFirstDayCurrentMonth, false)[0];
+      const intervalOfFirstDayCurrentMonth = this.getGridIntervalForDayOfYear(
+        indexOfFirstDayCurrentMonth,
+        false
+      );
+      if (intervalOfFirstDayCurrentMonth) {
+        const startColumn =
+          this.HEADER_COLUMNS + intervalOfFirstDayCurrentMonth[0];
 
-      const indexOfLastDayCurrentMonth = dayStructureIndices.at(-1);
+        const indexOfLastDayCurrentMonth = dayStructureIndices.at(-1);
 
-      let endColumn =
-        this.HEADER_COLUMNS +
-        this.getGridIntervalForDayOfYear(indexOfLastDayCurrentMonth, true)[1];
+        const intervalOfLastDayCurrentMonth = this.getGridIntervalForDayOfYear(
+          indexOfLastDayCurrentMonth,
+          true
+        );
 
-      months.push({
-        name: monthName,
-        month_number: monthNumberToPush,
-        style_: `grid-column: ${startColumn} / ${endColumn + 1}; min-width: ${
-          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
-        }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
-      });
+        if (intervalOfLastDayCurrentMonth) {
+          let endColumn =
+            this.HEADER_COLUMNS + intervalOfLastDayCurrentMonth[1];
+
+          months.push({
+            name: monthName,
+            month_number: monthNumberToPush,
+            style_: `grid-column: ${startColumn} / ${
+              endColumn + 1
+            }; min-width: ${
+              this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn)
+            }rem; height: ${this._BASE_CELL_HEIGHT}rem;`,
+          });
+        }
+      }
     });
     return months;
   }
@@ -609,41 +641,62 @@ class TableStructureService extends Service {
     const blockDataRenderObjectsArray =
       this._serviceRegister.tableDataService.generateBlockDataRenderObjects();
 
+    const dayOfYearToGridIntervalMapping =
+      this._getDayOfYearToGridIntervalMapping();
+
     blockDataRenderObjectsArray.forEach((block) => {
-      const startColumn =
-        this.HEADER_COLUMNS +
-        this.getGridIntervalForDayOfYear(block.startDayOfYearIdx, false)[0];
-      const endColumn =
-        this.HEADER_COLUMNS +
-        this.getGridIntervalForDayOfYear(block.endDayOfYearIdx, true)[1];
-
-      //////
-      const availableWidthInRem =
-        this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn);
-
-      const cell = document.querySelector(".planner-block");
-
-      let label = "";
-
-      if (cell) {
-        label = this._chooseLabelForAvailableWidth(
-          block.labels,
-          availableWidthInRem,
-          cell
+      const blockStartDayOfYearIdx =
+        this._getBestMatchingDayOfYearIdxForIntervalMapping(
+          block.startDayOfYearIdx,
+          false
         );
-      }
+      let blockEndDayOfYearIdx = block.endDayOfYearIdx;
+      if (blockStartDayOfYearIdx > blockEndDayOfYearIdx) {
+        console.log(`skipping block '${block.id} (${block.labels[0]})'...`);
+      } else {
+        blockEndDayOfYearIdx =
+          this._getBestMatchingDayOfYearIdxForIntervalMapping(
+            block.endDayOfYearIdx,
+            true
+          );
+        const startColumn =
+          this.HEADER_COLUMNS +
+          dayOfYearToGridIntervalMapping[blockStartDayOfYearIdx][0];
+        const endColumn =
+          this.HEADER_COLUMNS +
+          dayOfYearToGridIntervalMapping[blockEndDayOfYearIdx][1];
 
-      blockDataRenderObjects.push({
-        block_id: block.id,
-        block_name: label,
-        row_key_list: block.row_key_list,
-        style_: `grid-row: ${block.start_data_row_index + this.HEADER_ROWS} / ${
-          block.end_data_row_index + this.HEADER_ROWS + 1
-        }; grid-column: ${startColumn} / ${endColumn + 1}; background-color: ${
-          block.color
-        }; width: ${availableWidthInRem}rem; white-space: nowrap;`,
-        unspecified: block.unspecified,
-      });
+        const availableWidthInRem =
+          this._BASE_CELL_WIDTH * (endColumn + 1 - startColumn);
+
+        const cell = document.querySelector(".planner-block");
+
+        let label = "";
+
+        if (cell) {
+          label = this._chooseLabelForAvailableWidth(
+            block.labels,
+            availableWidthInRem,
+            cell
+          );
+        }
+
+        blockDataRenderObjects.push({
+          block_id: block.id,
+          block_name: label,
+          row_key_list: block.row_key_list,
+          style_: `grid-row: ${
+            block.start_data_row_index + this.HEADER_ROWS
+          } / ${
+            block.end_data_row_index + this.HEADER_ROWS + 1
+          }; grid-column: ${startColumn} / ${
+            endColumn + 1
+          }; background-color: ${
+            block.color
+          }; width: ${availableWidthInRem}rem; white-space: nowrap;`,
+          unspecified: block.unspecified,
+        });
+      }
     });
     return blockDataRenderObjects;
   }
@@ -665,13 +718,13 @@ class TableStructureService extends Service {
     // Blockdaten-Intervalle, so nicht leer, mappen von dayOfYearIndices auf GridColumns:
     let dataColumnIntervals = [];
     if (blockIntervals.length !== 0) {
-      dataColumnIntervals = blockIntervals.map(
-        (i) =>
-          new Interval(
-            this.getGridIntervalForDayOfYear(i.start, false)[0],
-            this.getGridIntervalForDayOfYear(i.end, true)[1]
-          )
-      );
+      dataColumnIntervals = blockIntervals
+        .map((i) => [
+          this.getGridIntervalForDayOfYear(i.start, false)[0],
+          this.getGridIntervalForDayOfYear(i.end, true)[1],
+        ])
+        .filter((arr) => arr[0] <= arr[1])
+        .map((arr) => new Interval(arr[0], arr[1]));
     }
 
     // zu füllende Grid-Column-Intervalle (Gaps zwischen den Blockdaten-Intervallen sowie davor und dahinter) ermitteln:
