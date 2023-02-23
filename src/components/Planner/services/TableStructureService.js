@@ -25,6 +25,7 @@ class TableStructureService extends Service {
   _BASE_CELL_HEIGHT = 4;
 
   _year;
+  _weekDayMask;
 
   // Zum testen von Abmessungen von Text-Blöcken
   _textTesterWidget;
@@ -164,6 +165,15 @@ class TableStructureService extends Service {
         this._serviceRegister.calenderService.generateEntityArraysForYear(
           this._year
         );
+      // POST-PROCESSING
+      entityArrays.daysInWeekAsIndicesOfDayStructure =
+        entityArrays.daysInWeekAsIndicesOfDayStructure.map(
+          (dayOfYearIndicesInCalenderWeek) =>
+            dayOfYearIndicesInCalenderWeek.filter((_, idx) =>
+              this._weekDayMask.includes(idx)
+            )
+        );
+      ////
 
       this._serviceRegister.cacheService.saveEntityArraysForYear(
         this._year,
@@ -224,7 +234,7 @@ class TableStructureService extends Service {
     return dataGridColumnsForDayOfYear;
   }
 
-  getDayOfYearToGridIntervalMapping() {
+  _getDayOfYearToGridIntervalMapping() {
     //console.log(`TableStructureService::getDayOfYearToGridIntervalMapping() -- already cached`);
 
     const calenderWeeksCollapsedState =
@@ -247,11 +257,43 @@ class TableStructureService extends Service {
     return dataGridColumnsForDayOfYear;
   }
 
+  getGridIntervalForDayOfYear(dayOfYearIdx, earlier) {
+    const dayOfYearToGridIntervalMapping =
+      this._getDayOfYearToGridIntervalMapping();
+    const ret = dayOfYearToGridIntervalMapping[dayOfYearIdx];
+    if (ret) return ret;
+    if (earlier) {
+      for (
+        let cur_dayOfYearIdx = dayOfYearIdx - 1;
+        cur_dayOfYearIdx >= Math.max(0, dayOfYearIdx - this._DAYS_IN_WEEK + 1);
+        cur_dayOfYearIdx--
+      ) {
+        const ret = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
+        if (ret) return ret;
+      }
+      return undefined;
+    }
+
+    for (
+      let cur_dayOfYearIdx = dayOfYearIdx + 1;
+      cur_dayOfYearIdx <
+      Math.min(
+        dayOfYearToGridIntervalMapping.length,
+        dayOfYearIdx + this._DAYS_IN_WEEK - 1
+      );
+      cur_dayOfYearIdx++
+    ) {
+      const ret = dayOfYearToGridIntervalMapping[cur_dayOfYearIdx];
+      if (ret) return ret;
+    }
+    return undefined;
+  }
+
   // Funktioniert, könnte aber performanter umgesetzt werden (TODO)
   getDayOfYearFromGridColumn(gridColumn) {
-    const mapping = this.getDayOfYearToGridIntervalMapping();
+    const mapping = this._getDayOfYearToGridIntervalMapping();
     const dayOfYearIdx = mapping.findIndex(
-      (i) => i[0] <= gridColumn && i[1] >= gridColumn
+      (i) => i && i[0] <= gridColumn && i[1] >= gridColumn
     );
     if (!Number.isFinite(dayOfYearIdx)) return [undefined, undefined];
     const dayOfYearStructure =
@@ -278,14 +320,11 @@ class TableStructureService extends Service {
     const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
-    const daysInWeekAsDayOfYear = this.getEntityArrays().daysInWeekAsDayOfYear;
-
     let k = 0;
     calenderWeeksCollapsedState.forEach((flag, idx) => {
-      const l = daysInWeekAsDayOfYear[idx]?.length ?? 0;
       flag
-        ? (k += Math.min(l, 1) * this._BASE_COLUMN_WIDTH)
-        : (k += l * this._BASE_COLUMN_WIDTH);
+        ? (k += Math.min(this._DAYS_IN_WEEK, 1) * this._BASE_COLUMN_WIDTH)
+        : (k += this._DAYS_IN_WEEK * this._BASE_COLUMN_WIDTH);
     });
     return k;
   }
@@ -323,9 +362,6 @@ class TableStructureService extends Service {
     const monthsArray =
       this.getEntityArrays().daysInMonthAsIndicesOfDayStructure;
 
-    const dayOfYearToGridIntervalMapping =
-      this.getDayOfYearToGridIntervalMapping();
-
     monthsArray.forEach((dayStructureIndices, monthNumber) => {
       // Der Name des Monats wird nur für die aus dem betrachteten Jahr angezeigt
       const monthName =
@@ -338,13 +374,13 @@ class TableStructureService extends Service {
       const indexOfFirstDayCurrentMonth = dayStructureIndices[0];
       const startColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[indexOfFirstDayCurrentMonth][0];
+        this.getGridIntervalForDayOfYear(indexOfFirstDayCurrentMonth, false)[0];
 
       const indexOfLastDayCurrentMonth = dayStructureIndices.at(-1);
 
       let endColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[indexOfLastDayCurrentMonth][1];
+        this.getGridIntervalForDayOfYear(indexOfLastDayCurrentMonth, true)[1];
 
       months.push({
         name: monthName,
@@ -365,9 +401,6 @@ class TableStructureService extends Service {
 
     const weeksArray = this.getEntityArrays().daysInWeekAsIndicesOfDayStructure;
 
-    const dayOfYearToGridIntervalMapping =
-      this.getDayOfYearToGridIntervalMapping();
-
     const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
@@ -380,13 +413,17 @@ class TableStructureService extends Service {
       const indexOfFirstDayCurrentWeek = dayStructureIndices[0];
       const startColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[indexOfFirstDayCurrentWeek][0];
+        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // damit wir einen Fehler erhalten, wenn es kein Match gibt
+        this.getGridIntervalForDayOfYear(indexOfFirstDayCurrentWeek)[0];
 
       const indexOfLastDayCurrentWeek = dayStructureIndices.at(-1);
 
       let endColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[indexOfLastDayCurrentWeek][1];
+        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // damit wir einen Fehler erhalten, wenn es kein Match gibt
+        this.getGridIntervalForDayOfYear(indexOfLastDayCurrentWeek)[1];
 
       if (calenderWeeksCollapsedState[weekNumber]) {
         endColumn = startColumn + this._BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC__BASE_COLUMN_WIDTH GridColumns zu verwenden
@@ -414,9 +451,6 @@ class TableStructureService extends Service {
 
     const entityArrays = this.getEntityArrays();
 
-    const dayOfYearToGridIntervalMapping =
-      this.getDayOfYearToGridIntervalMapping();
-
     const calenderWeeksCollapsedState =
       this._serviceRegister.tableStateService.getCalenderWeekCollapsedStates();
 
@@ -439,8 +473,12 @@ class TableStructureService extends Service {
         // Der Tag-Feld-Bereich einer kollabierten Kalenderwoche
         const firstDay = entityArrays.dayStructures[daysOfWeekIndices[0]];
         const lastDay = entityArrays.dayStructures[daysOfWeekIndices[1]];
-        const startDataColumn =
-          dayOfYearToGridIntervalMapping[daysOfWeekIndices[0]][0];
+
+        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // damit wir einen Fehler erhalten, wenn es kein Match gibt
+        const startDataColumn = this.getGridIntervalForDayOfYear(
+          daysOfWeekIndices[0]
+        )[0];
         const endDataColumn = startDataColumn + this._BASE_COLUMN_WIDTH - 1;
 
         let month_number = firstDay.in_month;
@@ -471,7 +509,9 @@ class TableStructureService extends Service {
         });
       } else {
         daysOfWeekIndices.forEach((dayIndex) => {
-          const dataColumns = dayOfYearToGridIntervalMapping[dayIndex];
+          // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+          // damit wir einen Fehler erhalten, wenn es kein Match gibt
+          const dataColumns = this.getGridIntervalForDayOfYear(dayIndex);
           const startDataColumn = dataColumns[0];
           const endDataColumn = dataColumns[1];
           const day = entityArrays.dayStructures[dayIndex];
@@ -566,19 +606,16 @@ class TableStructureService extends Service {
 
     const blockDataRenderObjects = [];
 
-    const dayOfYearToGridIntervalMapping =
-      this.getDayOfYearToGridIntervalMapping();
-
     const blockDataRenderObjectsArray =
       this._serviceRegister.tableDataService.generateBlockDataRenderObjects();
 
     blockDataRenderObjectsArray.forEach((block) => {
       const startColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[block.startDayOfYearIdx][0];
+        this.getGridIntervalForDayOfYear(block.startDayOfYearIdx, false)[0];
       const endColumn =
         this.HEADER_COLUMNS +
-        dayOfYearToGridIntervalMapping[block.endDayOfYearIdx][1];
+        this.getGridIntervalForDayOfYear(block.endDayOfYearIdx, true)[1];
 
       //////
       const availableWidthInRem =
@@ -622,9 +659,6 @@ class TableStructureService extends Service {
         rowIndex
       );
 
-    const dayOfYearToGridIntervalMapping =
-      this.getDayOfYearToGridIntervalMapping();
-
     // einen GridAssistant für die aktuelle "Collapsed-Situation" erzeugen
     const gridAssistant = this.getGridAssistant();
 
@@ -634,8 +668,8 @@ class TableStructureService extends Service {
       dataColumnIntervals = blockIntervals.map(
         (i) =>
           new Interval(
-            dayOfYearToGridIntervalMapping[i.start][0],
-            dayOfYearToGridIntervalMapping[i.end][1]
+            this.getGridIntervalForDayOfYear(i.start, false)[0],
+            this.getGridIntervalForDayOfYear(i.end, true)[1]
           )
       );
     }
@@ -690,7 +724,10 @@ class TableStructureService extends Service {
   }
 }
 
-const createTableStructureService = function (year, weekDayMask) {
+const createTableStructureService = function (
+  year,
+  weekDayMask = [0, 1, 2, 3, 4, 5, 6]
+) {
   return new TableStructureService(year, weekDayMask);
 };
 

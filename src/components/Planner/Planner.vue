@@ -187,8 +187,9 @@ export default {
   },
   name: "planner",
   props: {
-    rows: Array,
     year: Number,
+    weekDayMask: Array,
+    rows: Array,
     types: Array,
     selectionColorValid: String,
     selectionColorInvalid: String,
@@ -203,7 +204,7 @@ export default {
   created() {
     //console.log("Planner -- created");
     // Hier und nur hier wird der ServiceManager initialisiert
-    this.serviceManager = initServices(this.year, [0, 1, 2, 3, 4, 5, 6]);
+    this.serviceManager = initServices(this.year, this.weekDayMask);
     this.serviceManager.tableInteractionService.setForceUpdate(
       this.$forceUpdate
     );
