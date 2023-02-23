@@ -294,7 +294,7 @@ class TableStructureService extends Service {
     return undefined;
   }
 
-  getGridIntervalForDayOfYear(dayOfYearIdx, earlierFlag) {
+  _getGridIntervalForDayOfYear(dayOfYearIdx, earlierFlag) {
     const dayOfYearToGridIntervalMapping =
       this._getDayOfYearToGridIntervalMapping();
     const matchingDayOfYearIdx =
@@ -391,7 +391,7 @@ class TableStructureService extends Service {
       if (monthNumberToPush === 13) monthNumberToPush = 1; // ist zwar aus dem Folgejahr und kriegt keinen Text, soll durch CSS wie Januar coloriert werden
 
       const indexOfFirstDayCurrentMonth = dayStructureIndices[0];
-      const intervalOfFirstDayCurrentMonth = this.getGridIntervalForDayOfYear(
+      const intervalOfFirstDayCurrentMonth = this._getGridIntervalForDayOfYear(
         indexOfFirstDayCurrentMonth,
         false
       );
@@ -401,7 +401,7 @@ class TableStructureService extends Service {
 
         const indexOfLastDayCurrentMonth = dayStructureIndices.at(-1);
 
-        const intervalOfLastDayCurrentMonth = this.getGridIntervalForDayOfYear(
+        const intervalOfLastDayCurrentMonth = this._getGridIntervalForDayOfYear(
           indexOfLastDayCurrentMonth,
           true
         );
@@ -445,17 +445,17 @@ class TableStructureService extends Service {
       const indexOfFirstDayCurrentWeek = dayStructureIndices[0];
       const startColumn =
         this.HEADER_COLUMNS +
-        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // wir lassen in _getGridIntervalForDayOfYear das zweite Argument weg,
         // damit wir einen Fehler erhalten, wenn es kein Match gibt
-        this.getGridIntervalForDayOfYear(indexOfFirstDayCurrentWeek)[0];
+        this._getGridIntervalForDayOfYear(indexOfFirstDayCurrentWeek)[0];
 
       const indexOfLastDayCurrentWeek = dayStructureIndices.at(-1);
 
       let endColumn =
         this.HEADER_COLUMNS +
-        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // wir lassen in _getGridIntervalForDayOfYear das zweite Argument weg,
         // damit wir einen Fehler erhalten, wenn es kein Match gibt
-        this.getGridIntervalForDayOfYear(indexOfLastDayCurrentWeek)[1];
+        this._getGridIntervalForDayOfYear(indexOfLastDayCurrentWeek)[1];
 
       if (calenderWeeksCollapsedState[weekNumber]) {
         endColumn = startColumn + this._BASE_COLUMN_WIDTH - 1; // bei kollabierten KWs ist IMMER die fixe Breite von LOGIC__BASE_COLUMN_WIDTH GridColumns zu verwenden
@@ -506,9 +506,9 @@ class TableStructureService extends Service {
         const firstDay = entityArrays.dayStructures[daysOfWeekIndices[0]];
         const lastDay = entityArrays.dayStructures[daysOfWeekIndices[1]];
 
-        // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+        // wir lassen in _getGridIntervalForDayOfYear das zweite Argument weg,
         // damit wir einen Fehler erhalten, wenn es kein Match gibt
-        const startDataColumn = this.getGridIntervalForDayOfYear(
+        const startDataColumn = this._getGridIntervalForDayOfYear(
           daysOfWeekIndices[0]
         )[0];
         const endDataColumn = startDataColumn + this._BASE_COLUMN_WIDTH - 1;
@@ -541,9 +541,9 @@ class TableStructureService extends Service {
         });
       } else {
         daysOfWeekIndices.forEach((dayIndex) => {
-          // wir lassen in getGridIntervalForDayOfYear das zweite Argument weg,
+          // wir lassen in _getGridIntervalForDayOfYear das zweite Argument weg,
           // damit wir einen Fehler erhalten, wenn es kein Match gibt
-          const dataColumns = this.getGridIntervalForDayOfYear(dayIndex);
+          const dataColumns = this._getGridIntervalForDayOfYear(dayIndex);
           const startDataColumn = dataColumns[0];
           const endDataColumn = dataColumns[1];
           const day = entityArrays.dayStructures[dayIndex];
@@ -720,8 +720,8 @@ class TableStructureService extends Service {
     if (blockIntervals.length !== 0) {
       dataColumnIntervals = blockIntervals
         .map((i) => [
-          this.getGridIntervalForDayOfYear(i.start, false)[0],
-          this.getGridIntervalForDayOfYear(i.end, true)[1],
+          this._getGridIntervalForDayOfYear(i.start, false)[0],
+          this._getGridIntervalForDayOfYear(i.end, true)[1],
         ])
         .filter((arr) => arr[0] <= arr[1])
         .map((arr) => new Interval(arr[0], arr[1]));
@@ -779,7 +779,7 @@ class TableStructureService extends Service {
 
 const createTableStructureService = function (
   year,
-  weekDayMask = [0, 1, 2, 3, 4, 5, 6]
+  weekDayMask = [0, 1, 2, 3, 4]
 ) {
   return new TableStructureService(year, weekDayMask);
 };

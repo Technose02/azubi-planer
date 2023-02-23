@@ -8,7 +8,6 @@
       <planner
         ref="plannerView"
         :year="this.year"
-        :week-day-mask="this.weekDayMask"
         selection-color-valid="#0000FF0F"
         selection-color-invalid="#FF000030"
         @block-added="onBlockAdded"
@@ -32,8 +31,6 @@ export default {
   data() {
     return {
       year: 2023,
-      weekDayMask: [0, 1, 2, 3, 4],
-
       currentMapping: new Map(),
 
       differentialState: {
