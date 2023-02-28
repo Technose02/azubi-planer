@@ -172,8 +172,8 @@ class TableDataService extends Service {
       );
 
     if (
-      !startDayOfYearIdx ||
-      !endDayOfYearIdx ||
+      startDayOfYearIdx == undefined ||
+      endDayOfYearIdx == undefined ||
       startDayOfYearIdx > endDayOfYearIdx
     ) {
       console.log(
