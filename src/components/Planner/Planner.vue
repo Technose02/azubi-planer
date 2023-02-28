@@ -1,20 +1,14 @@
 <template>
   <div
-    @click="this.serviceManager.tableInteractionService.onPlannerContainerClick"
-    @contextmenu="
-      this.serviceManager.tableInteractionService.onPlannerContainerContextMenu
-    "
-    @mousemove="
-      this.serviceManager.tableInteractionService.onPlannerContainerMouseMove
-    "
+    @click="this.onPlannerContainerClick"
+    @contextmenu="this.onPlannerContainerContextMenu"
+    @mousemove="this.onPlannerContainerMouseMove"
     ref="plannerContainer"
     class="planner-container-grid"
-    :style_="`grid-template-columns: 24rem repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()}, 0.5rem);`"
-    _:style_="`grid-template-columns: 48fr repeat(${this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()},1fr);`"
   >
     <div
       class="planner-cell planner-header planner-header-row planner-header-row-month"
-      v-for="m in this.serviceManager.tableStructureService.getMonthHeaderRowObjects()"
+      v-for="m in this.getMonthHeaderRowObjects()"
       :class="[
         Number.isFinite(m.month_number)
           ? `planner-header-row-month--${m.month_number}`
@@ -35,13 +29,13 @@
           : '',
         w.collapsed ? 'collapsed' : '',
       ]"
-      v-for="w in this.serviceManager.tableStructureService.getWeekHeaderRowObjects()"
+      v-for="w in this.getWeekHeaderRowObjects()"
       :style="w.style_"
     >
       {{ w.name }}
     </div>
     <div
-      v-for="d in this.serviceManager.tableStructureService.getDayHeaderRowObjects()"
+      v-for="d in this.getDayHeaderRowObjects()"
       :class="[
         'planner-cell',
         'planner-header',
@@ -77,7 +71,7 @@
         'planner-header-column',
         row.key ? `planner-header-column--${row.key}` : '',
       ]"
-      v-for="row in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
+      v-for="row in this.getDataHeaderColumnObjects()"
       :style="`${row.style_}`"
     >
       {{ row.title }}
@@ -85,7 +79,7 @@
 
     <!-- Rendern der Blöcke -->
     <div
-      v-for="b in this.serviceManager.tableStructureService.getBlockDataRenderObjects()"
+      v-for="b in this.getBlockDataRenderObjects()"
       :class="[
         'planner-cell',
         'data-cell',
@@ -100,15 +94,9 @@
     </div>
 
     <!-- Rendern der freien "Data-Cells" -->
-    <template
-      v-for="(
-        row, rowIdx
-      ) in this.serviceManager.tableStructureService.getDataHeaderColumnObjects()"
-    >
+    <template v-for="(row, rowIdx) in this.getDataHeaderColumnObjects()">
       <template
-        v-for="d in this.serviceManager.tableStructureService.getNonBlockedDayFillingObjectsForRowByIndex(
-          rowIdx
-        )"
+        v-for="d in this.getNonBlockedDayFillingObjectsForRowByIndex(rowIdx)"
       >
         <div
           v-if="d.is_fill_day"
@@ -148,7 +136,7 @@
     <div class="planner-header-column text-tester" ref="textTester"></div>
     <div class="menu menu--block-type invisible" ref="blockTypeMenu">
       <template
-        v-for="t in this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu()"
+        v-for="t in this.getBlockTypeEntriesForBlocktypeSelectionMenu()"
       >
         <div
           class="menu-item-block-type"
@@ -170,7 +158,6 @@
   </div>
 </template>
 <script>
-import { store } from "./store.js";
 import initServices from "./services/ServiceManager";
 import IconDelete from "../icons/IconDelete.vue";
 import IconEdit from "../icons/IconEdit.vue";
@@ -179,7 +166,8 @@ export default {
   data() {
     return {
       serviceManager: [],
-      shared: store,
+      headerRowData: undefined,
+      blockTypeData: undefined,
     };
   },
   name: "planner",
@@ -200,47 +188,12 @@ export default {
   },
   created() {
     //console.log("Planner -- created");
-    // Hier und nur hier wird der ServiceManager initialisiert
-    this.serviceManager = initServices(this.year, this.weekDayMask);
-    this.serviceManager.tableInteractionService.setForceUpdate(
-      this.$forceUpdate
-    );
-    this.serviceManager.tableInteractionService.setOnBlockAddedHandler(
-      this.onBlockAdded
-    );
-    this.serviceManager.tableInteractionService.setOnBlockDeletedHandler(
-      this.onBlockDeleted
-    );
-    this.serviceManager.tableInteractionService.setOnBlockUpdatedHandler(
-      this.onBlockUpdated
-    );
-    this.shared.serviceManager = this.serviceManager;
   },
   beforeMount() {
     //console.log("Planner -- beforeMount");
   },
   mounted() {
     //console.log("Planner -- mounted");
-    this.serviceManager.tableInteractionService.setWidgets(
-      this.$refs.plannerContainer,
-      this.$refs.headerCorner,
-      this.$refs.createBlockVisualizer,
-      this.$refs.blockContextMenu,
-      this.$refs.blockTypeMenu
-    );
-    this.serviceManager.tableInteractionService.setSelectionColors(
-      this.selectionColorValid,
-      this.selectionColorInvalid
-    ); //"#0B03", "#B004"
-    this.serviceManager.tableStructureService.setTextTesterWidget(
-      this.$refs.textTester
-    );
-    this.serviceManager.tableStructureService.setBlockTypeMenuWidget(
-      this.$refs.blockTypeMenu
-    );
-    this.serviceManager.tableDataService.setUnspecifiedTypeDataColor(
-      this.selectionColorValid
-    );
   },
   beforeUpdate() {
     //console.log("Planner -- beforeUpdate");
@@ -255,12 +208,176 @@ export default {
     //console.log("Planner -- unmounted");
   },
   methods: {
-    resetBlockData() {
-      this.shared.serviceManager.tableDataService.resetBlockData();
+    initialized() {
+      return this.headerRowData != undefined && this.blockTypeData != undefined;
+    },
+    onPlannerContainerClick(event) {
+      if (this.initialized())
+        this.serviceManager.tableInteractionService.onPlannerContainerClick(
+          event
+        );
+    },
+    onPlannerContainerContextMenu(event) {
+      if (this.initialized())
+        this.serviceManager.tableInteractionService.onPlannerContainerContextMenu(
+          event
+        );
+    },
+    onPlannerContainerMouseMove(event) {
+      if (this.initialized())
+        this.serviceManager.tableInteractionService.onPlannerContainerMouseMove(
+          event
+        );
+    },
+    getNumberOfLogicalDataColumns() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getNumberOfLogicalDataColumns()
+        : -1;
+    },
+    getMonthHeaderRowObjects() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getMonthHeaderRowObjects()
+        : [];
+    },
+    getWeekHeaderRowObjects() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getWeekHeaderRowObjects()
+        : [];
+    },
+    getDayHeaderRowObjects() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getDayHeaderRowObjects()
+        : [];
+    },
+    getDataHeaderColumnObjects() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getDataHeaderColumnObjects()
+        : [];
+    },
+    getBlockDataRenderObjects() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getBlockDataRenderObjects()
+        : [];
+    },
+    getNonBlockedDayFillingObjectsForRowByIndex(rowIdx) {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getNonBlockedDayFillingObjectsForRowByIndex(
+            rowIdx
+          )
+        : [];
+    },
+    getBlockTypeEntriesForBlocktypeSelectionMenu() {
+      return this.initialized()
+        ? this.serviceManager.tableStructureService.getBlockTypeEntriesForBlocktypeSelectionMenu()
+        : [];
     },
 
-    addBlockData(blockId, startDate, endDate, type, rowKeys) {
-      return this.shared.serviceManager.tableDataService.importBlockData(
+    _onInitStep() {
+      if (this.initialized()) {
+        // Hier und nur hier wird der ServiceManager initialisiert
+        this.serviceManager = initServices(this.year, this.weekDayMask);
+        this.serviceManager.tableInteractionService.setForceUpdate(
+          this.$forceUpdate
+        );
+        this.serviceManager.tableInteractionService.setOnBlockAddedHandler(
+          this.onBlockAdded
+        );
+        this.serviceManager.tableInteractionService.setOnBlockDeletedHandler(
+          this.onBlockDeleted
+        );
+        this.serviceManager.tableInteractionService.setOnBlockTypeUpdatedHandler(
+          this.onBlockTypeUpdated
+        );
+
+        this.serviceManager.tableInteractionService.setWidgets(
+          this.$refs.plannerContainer,
+          this.$refs.headerCorner,
+          this.$refs.createBlockVisualizer,
+          this.$refs.blockContextMenu,
+          this.$refs.blockTypeMenu
+        );
+        this.serviceManager.tableInteractionService.setSelectionColors(
+          this.selectionColorValid,
+          this.selectionColorInvalid
+        ); //"#0B03", "#B004"
+        this.serviceManager.tableStructureService.setTextTesterWidget(
+          this.$refs.textTester
+        );
+        this.serviceManager.tableStructureService.setBlockTypeMenuWidget(
+          this.$refs.blockTypeMenu
+        );
+        this.serviceManager.tableDataService.setUnspecifiedTypeDataColor(
+          this.selectionColorValid
+        );
+
+        this.serviceManager.tableDataService.resetDataHeaderRows(
+          this.headerRowData
+        );
+        this.serviceManager.tableDataService.resetBlockTypes(
+          this.blockTypeData
+        );
+
+        this.$emit("initialized");
+      }
+    },
+
+    updateBlockType(blockId, blockType) {
+      this.serviceManager.tableDataService.updateBlockType(blockId, blockType);
+    },
+
+    deleteBlock(blockId) {
+      this.serviceManager.tableDataService.deleteBlock(blockId);
+    },
+
+    initDataHeaderRows(headerRowData) {
+      this.headerRowData = headerRowData;
+      this._onInitStep();
+    },
+
+    initBlockTypes(blockTypeData) {
+      this.blockTypeData = blockTypeData;
+      this._onInitStep();
+    },
+
+    resetBlockData(serverBlockData) {
+      this.$emit("planner-ready", false);
+
+      if (!this.initialized()) return;
+
+      new Promise((rej, _) => {
+        this.serviceManager.tableDataService.resetBlockData();
+
+        const dateStringToDate = (str) => {
+          const dateTime = new Date(str);
+          return new Date(
+            dateTime.getFullYear(),
+            dateTime.getMonth(),
+            dateTime.getDate()
+          );
+        };
+
+        serverBlockData
+          .map((d) => {
+            return {
+              blockId: d.blockId,
+              startDate: dateStringToDate(d.startDate),
+              endDate: dateStringToDate(d.endDate),
+              type: d.type,
+              rowKeys: d.rowKeys,
+            };
+          })
+          .forEach((d) => {
+            this.addBlockData(d);
+          });
+        rej();
+      }).then(() => {
+        this.$emit("planner-ready", true);
+      });
+    },
+
+    addBlockData(logicBlockData) {
+      const { blockId, startDate, endDate, type, rowKeys } = logicBlockData;
+      this.serviceManager.tableDataService.importBlockData(
         blockId,
         startDate,
         endDate,
@@ -269,29 +386,8 @@ export default {
       );
     },
 
-    updateBlockType(blockId, blockType) {
-      this.shared.serviceManager.tableDataService.updateBlockType(
-        blockId,
-        blockType
-      );
-    },
-
-    deleteBlock(blockId) {
-      this.shared.serviceManager.tableDataService.deleteBlock(blockId);
-    },
-
-    resetDataHeaderRows(dataHeaderRows) {
-      this.shared.serviceManager.tableDataService.resetDataHeaderRows(
-        dataHeaderRows
-      );
-    },
-
-    resetBlockTypes(blockTypes) {
-      this.shared.serviceManager.tableDataService.resetBlockTypes(blockTypes);
-    },
-
     onDeleteKeyPressed() {
-      this.shared.serviceManager.tableInteractionService.onDeleteKeyPressed();
+      this.serviceManager.tableInteractionService.onDeleteKeyPressed();
     },
 
     onBlockAdded(event) {
@@ -300,10 +396,17 @@ export default {
     onBlockDeleted(event) {
       this.$emit("block-deleted", event);
     },
-    onBlockUpdated(event) {
-      this.$emit("block-updated", event);
+    onBlockTypeUpdated(event) {
+      this.$emit("blocktype-updated", event);
     },
   },
+  emits: [
+    "block-added",
+    "block-deleted",
+    "blocktype-updated",
+    "initialized",
+    "planner-ready",
+  ],
 };
 </script>
 <style>

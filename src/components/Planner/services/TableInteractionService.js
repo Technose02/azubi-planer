@@ -56,9 +56,9 @@ class TableInteractionService extends Service {
     this._onBlockDeletedHandler = onBlockDeletedHandler;
   }
 
-  _onBlockUpdatedHandler = undefined;
-  setOnBlockUpdatedHandler(onBlockUpdatedHandler) {
-    this._onBlockUpdatedHandler = onBlockUpdatedHandler;
+  _onBlockTypeUpdatedHandler = undefined;
+  setOnBlockTypeUpdatedHandler(onBlockTypeUpdatedHandler) {
+    this._onBlockTypeUpdatedHandler = onBlockTypeUpdatedHandler;
   }
 
   onDeleteKeyPressed() {
@@ -426,8 +426,8 @@ class TableInteractionService extends Service {
           );
 
           // fire onBlockUpdatedHandler if set
-          if (this._onBlockUpdatedHandler) {
-            this._onBlockUpdatedHandler({
+          if (this._onBlockTypeUpdatedHandler) {
+            this._onBlockTypeUpdatedHandler({
               blockId: this._curBlockId,
               oldType: type,
               newType: blockTypeToSet,
