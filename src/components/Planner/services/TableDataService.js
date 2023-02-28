@@ -158,6 +158,30 @@ class TableDataService extends Service {
       endDayOfYearIdx = dayStructures.length - 1;
     }
 
+    // Berücksichtigung der relevanten Wochentage
+    startDayOfYearIdx =
+      this._serviceRegister.tableStructureService._getBestMatchingDayOfYearIdxForIntervalMapping(
+        startDayOfYearIdx,
+        false
+      );
+
+    endDayOfYearIdx =
+      this._serviceRegister.tableStructureService._getBestMatchingDayOfYearIdxForIntervalMapping(
+        endDayOfYearIdx,
+        true
+      );
+
+    if (
+      !startDayOfYearIdx ||
+      !endDayOfYearIdx ||
+      startDayOfYearIdx > endDayOfYearIdx
+    ) {
+      console.log(
+        `warning: data-block irrelevant for considered weekdays! Ignoring block`
+      );
+      return undefined;
+    }
+
     // Füge den Block hinzu, generiere ggf. vorher eine BlockID falls keine mitgegeben wurde
     const blockId_ = blockId ?? this._getNextBlockId();
     const blockDataToSet = {
