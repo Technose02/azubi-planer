@@ -6,7 +6,7 @@
   <main>
     <div class="planner-container">
       <p class="loading-screen" v-if="!this.planner_ready" tabindex="-1">
-        Loading
+        <em>Loading...</em>
       </p>
       <planner
         ref="plannerView"
@@ -39,7 +39,7 @@ export default {
       year: 2023,
       currentMapping: new Map(),
       planner_ready: false,
-      offline: true,
+      offline: false,
 
       differentialState: {
         head: -1,
