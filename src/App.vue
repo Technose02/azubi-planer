@@ -27,11 +27,7 @@
 </template>
 <script>
 import Planner from "./components/Planner/Planner.vue";
-
-const copyDate = function (date) {
-  if (!date) return;
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-};
+import createDifferentialStateManager from "./components/Planner/DifferentialState.js";
 
 export default {
   data() {
@@ -41,46 +37,7 @@ export default {
       planner_ready: false,
       offline: true,
 
-      differentialState: {
-        head: -1,
-        stack: [],
-        push(diffState) {
-          if (this.head < this.stack.length - 1) {
-            // head points to e previous state
-            // -> truncate stack to this point before applying new state
-            this.stack.splice(this.head + 1, this.stack.length - 1 - this.head);
-          }
-          this.stack.push(diffState);
-          this.head = this.stack.length - 1;
-        },
-        rewind() {
-          if (this.head >= 0) {
-            this.stack[this.head].undo();
-            this.head -= 1;
-            return true;
-          }
-          return false;
-        },
-        forward() {
-          if (this.head < this.stack.length - 1) {
-            this.head += 1;
-            this.stack[this.head].redo();
-            return true;
-          }
-          return false;
-        },
-        print() {
-          console.log(`-----\n`);
-          this.stack.forEach((diffState, idx) => {
-            console.log(
-              `\t${idx}\t${diffState.description}${
-                idx === this.head ? "\t[HEAD]" : ""
-              }`
-            );
-          });
-          console.log(`-----\n`);
-        },
-      },
+      differentialStateManager: [],
     };
   },
   components: {
@@ -88,78 +45,25 @@ export default {
   },
   methods: {
     onBlockAdded(event) {
-      this.differentialState.push({
-        redo() {
-          this.plannerView.addBlockData(this.blockData);
-        },
-        undo() {
-          this.plannerView.deleteBlock(this.blockData.blockId);
-        },
-        description: `block ${event.blockId} added`,
-        blockData: {
-          blockId: `${event.blockId}`,
-          startDate: copyDate(event.startDate),
-          endDate: copyDate(event.endDate),
-          type: `${event.type}`,
-          rowKeys: event.rowKeys.map((rk) => `${rk}`),
-        },
-        plannerView: this.$refs.plannerView,
-      });
-      this.differentialState.print();
+      this.differentialStateManager.pushBlockAddedDiffState(event);
+      this.differentialStateManager.print();
     },
     onBlockDeleted(event) {
-      this.differentialState.push({
-        redo() {
-          this.plannerView.deleteBlock(this.blockData.blockId);
-        },
-        undo() {
-          this.plannerView.addBlockData(this.blockData);
-        },
-        description: `block ${event.blockId} deleted`,
-        blockData: {
-          blockId: `${event.blockId}`,
-          startDate: copyDate(event.startDate),
-          endDate: copyDate(event.endDate),
-          type: `${event.type}`,
-          rowKeys: event.rowKeys.map((rk) => `${rk}`),
-        },
-        plannerView: this.$refs.plannerView,
-      });
-      this.differentialState.print();
+      this.differentialStateManager.pushBlockDeletedDiffState(event);
+      this.differentialStateManager.print();
     },
     onBlockTypeUpdated(event) {
-      const { blockId, oldType, newType } = event;
-      this.differentialState.push({
-        redo() {
-          this.plannerView.updateBlockType(
-            this.blockData.blockId,
-            this.blockData.newType
-          );
-        },
-        undo() {
-          this.plannerView.updateBlockType(
-            this.blockData.blockId,
-            this.blockData.oldType
-          );
-        },
-        description: `updated type of block ${blockId}`,
-        blockData: {
-          blockId: `${blockId}`,
-          oldType: `${oldType}`,
-          newType: `${newType}`,
-        },
-        plannerView: this.$refs.plannerView,
-      });
-      this.differentialState.print();
+      this.differentialStateManager.pushBlockTypeUpdatedDiffState(event);
+      this.differentialStateManager.print();
     },
     onKeyPress(event) {
       if (event.ctrlKey && event.key === "z") {
-        if (this.differentialState.rewind()) {
-          this.differentialState.print();
+        if (this.differentialStateManager.rewind()) {
+          this.differentialStateManager.print();
         }
       } else if (event.ctrlKey && event.key === "y") {
-        if (this.differentialState.forward()) {
-          this.differentialState.print();
+        if (this.differentialStateManager.forward()) {
+          this.differentialStateManager.print();
         }
       } else if (event.key === "Delete") {
         this.$refs.plannerView.onDeleteKeyPressed();
@@ -417,6 +321,11 @@ export default {
   },
   created() {
     this.onCreated();
+  },
+  mounted() {
+    this.differentialStateManager = createDifferentialStateManager(
+      this.$refs.plannerView
+    );
   },
 };
 </script>
