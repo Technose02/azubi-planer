@@ -39,7 +39,7 @@ export default {
       year: 2023,
       currentMapping: new Map(),
       planner_ready: false,
-      offline: false,
+      offline: true,
 
       differentialState: {
         head: -1,
