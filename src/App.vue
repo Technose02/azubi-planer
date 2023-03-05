@@ -22,6 +22,9 @@
         tabindex="-1"
         :class="[this.planner_ready ? '' : 'invisible']"
       ></planner>
+      <a class="btn btn--apply" @click="this.differentialStateManager.apply()"
+        >Übernehmen</a
+      >
     </div>
   </main>
 </template>
@@ -339,9 +342,33 @@ h1 {
 .planner-container {
   width: 100%;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: flex-start;
 }
+
 .loading-screen {
   display: block;
   font-size: 2.8rem;
+}
+.btn {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 2.4rem;
+  padding: 0.6rem 1.2rem;
+  background-color: #efefef;
+  color: black;
+  border: 0.3rem solid #cfcfcf;
+  user-select: none;
+  align-self: center;
+}
+
+.btn:hover {
+  background-color: #bfe1f8;
+  border-color: #98d6ff;
+}
+.btn:active {
+  background-color: #7acaff;
 }
 </style>
