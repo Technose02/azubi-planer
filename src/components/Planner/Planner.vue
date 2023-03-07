@@ -84,7 +84,7 @@
         'planner-cell',
         'data-cell',
         'planner-block',
-        b.block_name ? `planner-block--${b.block_id}` : '',
+        b.block_id ? `planner-block--${b.block_id}` : '',
         b.row_key_list ? `planner-rows--${b.row_key_list}` : '',
         b.unspecified ? 'unspecified' : '',
       ]"
@@ -161,6 +161,7 @@
 import initServices from "./services/ServiceManager";
 import IconDelete from "../icons/IconDelete.vue";
 import IconEdit from "../icons/IconEdit.vue";
+import { createBlock } from "./Block";
 
 export default {
   data() {
@@ -285,8 +286,8 @@ export default {
         this.serviceManager.tableInteractionService.setOnBlockDeletedHandler(
           this.onBlockDeleted
         );
-        this.serviceManager.tableInteractionService.setOnBlockTypeUpdatedHandler(
-          this.onBlockTypeUpdated
+        this.serviceManager.tableInteractionService.setOnBlockUpdatedHandler(
+          this.onBlockUpdated
         );
 
         this.serviceManager.tableInteractionService.setWidgets(
@@ -321,8 +322,8 @@ export default {
       }
     },
 
-    updateBlockType(blockId, blockType) {
-      this.serviceManager.tableDataService.updateBlockType(blockId, blockType);
+    addBlockData(blockData) {
+      this.serviceManager.tableDataService.importBlockData(blockData);
     },
 
     deleteBlock(blockId) {
@@ -358,32 +359,22 @@ export default {
 
         serverBlockData
           .map((d) => {
-            return {
-              blockId: d.blockId,
-              startDate: dateStringToDate(d.startDate),
-              endDate: dateStringToDate(d.endDate),
-              type: d.type,
-              rowKeys: d.rowKeys,
-            };
+            const block = createBlock(
+              d.type,
+              dateStringToDate(d.startDate),
+              dateStringToDate(d.endDate),
+              d.rowKeys
+            );
+            block.blockId = d.blockId;
+            return block;
           })
-          .forEach((d) => {
-            this.addBlockData(d);
-          });
+          .forEach((d) =>
+            this.serviceManager.tableDataService.importBlockData(d)
+          );
         rej();
       }).then(() => {
         this.$emit("planner-ready", true);
       });
-    },
-
-    addBlockData(logicBlockData) {
-      const { blockId, startDate, endDate, type, rowKeys } = logicBlockData;
-      this.serviceManager.tableDataService.importBlockData(
-        blockId,
-        startDate,
-        endDate,
-        type,
-        rowKeys
-      );
     },
 
     onDeleteKeyPressed() {
@@ -396,20 +387,26 @@ export default {
     onBlockDeleted(event) {
       this.$emit("block-deleted", event);
     },
-    onBlockTypeUpdated(event) {
-      this.$emit("blocktype-updated", event);
+    onBlockUpdated(event) {
+      this.$emit("block-updated", event);
     },
   },
   emits: [
     "block-added",
     "block-deleted",
-    "blocktype-updated",
+    "block-updated",
     "initialized",
     "planner-ready",
   ],
 };
 </script>
 <style>
+* {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
 .planner-container-grid {
   display: grid;
   text-align: center;
@@ -417,6 +414,7 @@ export default {
   cursor: default;
   user-select: none;
   position: relative;
+  outline: none;
 }
 
 .planner-header {
@@ -649,6 +647,13 @@ export default {
   font-size: 1.6rem;
   max-height: 30rem;
   overflow-y: scroll;
+  z-index: 99;
+}
+
+.menu--block-type.invisible {
+  left: 0;
+  top: 0;
+  z-index: -9999;
 }
 
 .menu-item-block-type {

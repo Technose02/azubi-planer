@@ -14,6 +14,13 @@ class Block {
       return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   }
 
+  static _stringifyDate(date) {
+    const year = `${date.getFullYear()}`.padStart(4, "0");
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   constructor() {}
 
   get blockId() {
@@ -49,6 +56,26 @@ class Block {
   }
   set rowKeys(value) {
     this._rowKeys = value;
+  }
+
+  createJsonString() {
+    return JSON.stringify({
+      type: this.type,
+      startDate: Block._stringifyDate(this.startDate),
+      endDate: Block._stringifyDate(this.endDate),
+      rowKeys: this.rowKeys,
+    });
+  }
+
+  copy() {
+    const ret = createBlock(
+      this.type,
+      this.startDate,
+      this.endDate,
+      this.rowKeys
+    );
+    ret.blockId = this.blockId;
+    return ret;
   }
 }
 

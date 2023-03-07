@@ -1,5 +1,6 @@
 import Interval from "../../Interval";
 import Service from "./Service";
+import { createBlock } from "../Block.js";
 
 class TableInteractionService extends Service {
   // Interne Konstanten
@@ -56,9 +57,9 @@ class TableInteractionService extends Service {
     this._onBlockDeletedHandler = onBlockDeletedHandler;
   }
 
-  _onBlockTypeUpdatedHandler = undefined;
-  setOnBlockTypeUpdatedHandler(onBlockTypeUpdatedHandler) {
-    this._onBlockTypeUpdatedHandler = onBlockTypeUpdatedHandler;
+  _onBlockUpdatedHandler = undefined;
+  setOnBlockUpdatedHandler(onBlockUpdatedHandler) {
+    this._onBlockUpdatedHandler = onBlockUpdatedHandler;
   }
 
   onDeleteKeyPressed() {
@@ -112,24 +113,16 @@ class TableInteractionService extends Service {
     name: () => "stateBlockSelected",
     _delete: () => {
       // hole noch einmal Blockdaten und rowKeys um diese ggf. noch an den onBlockDeletedHandler übergeben zu können
-      const { startDate, endDate, type } =
-        this._serviceRegister.tableDataService.getBlockData(this._curBlockId);
-      const rowKeys = this._serviceRegister.tableDataService.getAssignedRowKeys(
-        this._curBlockId
-      );
+      const blockData = this._serviceRegister.tableDataService
+        .getBlockData(this._curBlockId)
+        .copy();
 
       // lösche eintrag
       this._serviceRegister.tableDataService.deleteBlock(this._curBlockId);
 
       // fire onBlockDeletedHandler if set
       if (this._onBlockDeletedHandler) {
-        this._onBlockDeletedHandler({
-          blockId: this._curBlockId,
-          startDate,
-          endDate,
-          type,
-          rowKeys,
-        });
+        this._onBlockDeletedHandler({ block_data: blockData });
       }
       //
 
@@ -222,11 +215,12 @@ class TableInteractionService extends Service {
       }
 
       this._curBlockId = this._serviceRegister.tableDataService.importBlockData(
-        undefined,
-        startDay.date_object,
-        endDay.date_object,
-        this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
-        selectedRowKeys
+        createBlock(
+          this._serviceRegister.tableDataService._UNSPECIFIED_TYPE,
+          startDay.date_object,
+          endDay.date_object,
+          selectedRowKeys
+        )
       );
 
       this._setMenuReferencePoint(event);
@@ -346,22 +340,11 @@ class TableInteractionService extends Service {
 
           // fire onBlockAddedHandler if set
           if (this._onBlockAddedHandler) {
-            const { startDate, endDate } =
-              this._serviceRegister.tableDataService.getBlockData(
-                this._curBlockId
-              );
-            const rowKeys =
-              this._serviceRegister.tableDataService.getAssignedRowKeys(
-                this._curBlockId
-              );
+            const blockData = this._serviceRegister.tableDataService
+              .getBlockData(this._curBlockId)
+              .copy();
 
-            this._onBlockAddedHandler({
-              blockId: this._curBlockId,
-              startDate,
-              endDate,
-              type: blockTypeToSet,
-              rowKeys,
-            });
+            this._onBlockAddedHandler({ block_data: blockData });
           }
           //
         }
@@ -416,9 +399,11 @@ class TableInteractionService extends Service {
           event.target
         );
         if (blockTypeToSet) {
-          const { type } = this._serviceRegister.tableDataService.getBlockData(
-            this._curBlockId
-          );
+          const blockDataBefore = this._serviceRegister.tableDataService
+            .getBlockData(this._curBlockId)
+            .copy();
+          const blockDataAfter = blockDataBefore.copy();
+          blockDataAfter.type = blockTypeToSet;
 
           this._serviceRegister.tableDataService.updateBlockType(
             this._curBlockId,
@@ -426,11 +411,10 @@ class TableInteractionService extends Service {
           );
 
           // fire onBlockUpdatedHandler if set
-          if (this._onBlockTypeUpdatedHandler) {
-            this._onBlockTypeUpdatedHandler({
-              blockId: this._curBlockId,
-              oldType: type,
-              newType: blockTypeToSet,
+          if (this._onBlockUpdatedHandler) {
+            this._onBlockUpdatedHandler({
+              block_data_after: blockDataAfter,
+              block_data_before: blockDataBefore,
             });
           }
           //
@@ -548,6 +532,7 @@ class TableInteractionService extends Service {
     };
   }
   _getIdOfSelectedPlannerBlock(element) {
+    console.log(element);
     return Array.from(element.classList)
       .filter((c) => c.startsWith("planner-block--"))
       .flatMap((c) => c.split("--")[1])[0];

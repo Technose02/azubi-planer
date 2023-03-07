@@ -1,6 +1,7 @@
 import Service from "./Service";
 import { assert } from "@vue/compiler-core";
 import Interval from "./../../Interval";
+import { INTERNAL_ID_PREFIX } from "./Constants.js";
 
 class TableDataService extends Service {
   _UNSPECIFIED_TYPE = "unspezifiziert";
@@ -12,8 +13,8 @@ class TableDataService extends Service {
   _registeredRowKeys;
   _registeredRowTitles;
   _registeredBlockTypes;
-  _blockData; // Die Blöcke, also Name, von wann bis wann, eine id[KEY] (wird generiert) und wie er darzustellen ist.
-  _assignedBlocks; // Die Zuweisungen von Blöcken zu Azubis
+  _blockData; // Die Blöcke mit Zeitspanne und zugewiesenen Azubis
+  _assingedDayIndices; // Mapping von Start- und End-Datum der Blöcke zu DayOfYearIndices
   _blockIdCntr;
 
   // die Daten zu den Blöcken sind in einer Map organisiert. Ein Block hat eine ID, unter der er dort gelistet ist.
@@ -35,7 +36,7 @@ class TableDataService extends Service {
   _getNextBlockId() {
     const blockId = this._blockIdCntr;
     this._blockIdCntr += 1;
-    return `internal-${blockId}`;
+    return `${INTERNAL_ID_PREFIX}${blockId}`;
   }
 
   resetDataHeaderRows(dataHeaderRows) {
@@ -60,7 +61,7 @@ class TableDataService extends Service {
   // Wird gerufen wenn alle Blöcke und deren Zuweisungen zurückgesetzt werden sollen
   resetBlockData() {
     this._blockData = new Map();
-    this._assignedBlocks = new Map();
+    this._assingedDayIndices = new Map();
   }
 
   setUnspecifiedTypeDataColor(unspecifiedTypeDataColor) {
@@ -95,24 +96,24 @@ class TableDataService extends Service {
   }
 
   // Wird gerufen wenn Blockdaten in das System eingehen (aktuell über den Slot in Planner.vue)
-  importBlockData(blockId, startDate, endDate, type, rowKeys) {
+  importBlockData(blockdata) {
     // ist der type bekannt?
-    if (!this._registeredBlockTypes.has(type)) {
+    if (!this._registeredBlockTypes.has(blockdata.type)) {
       console.log(
-        `warning: block-type '${type}' not registered! Ignoring this data block`
+        `warning: block-type '${blockdata.type}' not registered! Ignoring this data block`
       );
       return undefined;
     }
 
     // nur die rowKeys nutzen, die auch registriert sind - wenn keine registriert sind -> return undefined
-    rowKeys = rowKeys.filter((k) => {
+    blockdata.rowKeys = blockdata.rowKeys.filter((k) => {
       if (!this._registeredRowKeys.includes(k)) {
         console.log(`warning: ignoring unknown data-header-rowkey '${k}'`);
         return false;
       }
       return true;
     });
-    if (rowKeys.length === 0) {
+    if (blockdata.rowKeys.length === 0) {
       console.log(
         `warning: none of the assigned rowkeys are registered! Ignoring the whole data block`
       );
@@ -127,8 +128,8 @@ class TableDataService extends Service {
     const firstDayInCalender = dayStructures.at(0);
     const lastDayOfCalender = dayStructures.at(-1);
     if (
-      endDate < firstDayInCalender.date_object ||
-      startDate > lastDayOfCalender.date_object
+      blockdata.endDate < firstDayInCalender.date_object ||
+      blockdata.startDate > lastDayOfCalender.date_object
     ) {
       console.log(
         `warning: data-block not in displayed calender-range! Ignoring block`
@@ -137,7 +138,9 @@ class TableDataService extends Service {
     }
 
     let startDayOfYearIdx = dayStructures.findIndex(
-      (d) => d.date_object >= startDate && d.date_object <= startDate
+      (d) =>
+        d.date_object >= blockdata.startDate &&
+        d.date_object <= blockdata.startDate
     );
 
     if (!Number.isFinite(startDayOfYearIdx) || startDayOfYearIdx < 0) {
@@ -148,7 +151,8 @@ class TableDataService extends Service {
     }
 
     let endDayOfYearIdx = dayStructures.findIndex(
-      (d) => d.date_object >= endDate && d.date_object <= endDate
+      (d) =>
+        d.date_object >= blockdata.endDate && d.date_object <= blockdata.endDate
     );
 
     if (!Number.isFinite(endDayOfYearIdx) || endDayOfYearIdx < 0) {
@@ -183,26 +187,21 @@ class TableDataService extends Service {
     }
 
     // Füge den Block hinzu, generiere ggf. vorher eine BlockID falls keine mitgegeben wurde
-    const blockId_ = blockId ?? this._getNextBlockId();
-    const blockDataToSet = {
-      startDate,
-      endDate,
-      startDayOfYearIdx,
-      endDayOfYearIdx,
-      type,
-    };
-    this._blockData.set(blockId_, blockDataToSet);
+    blockdata.blockId = blockdata.blockId ?? this._getNextBlockId();
+    this._blockData.set(blockdata.blockId, blockdata);
 
     // Füge Zuordnungen gemäß rowKeys-Parameter ohne Duplikate hinzu
-    const mappings = this._assignedBlocks.get(blockId_) ?? [];
-    this._assignedBlocks.set(blockId_, [...new Set([...mappings, ...rowKeys])]);
-    return blockId_;
+    this._assingedDayIndices.set(blockdata.blockId, [
+      startDayOfYearIdx,
+      endDayOfYearIdx,
+    ]);
+    return blockdata.blockId;
   }
 
   // Setzt den BlockType eines vorhandenen Blocks gemäß Parameter
   updateBlockType(blockId, blockType) {
     assert(this._registeredBlockTypes.has(blockType));
-    const blockData = this._blockData.get(blockId);
+    const blockData = this.getBlockData(blockId);
     assert(blockData);
     blockData.type = blockType;
   }
@@ -213,17 +212,10 @@ class TableDataService extends Service {
     }
   }
 
-  getAssignedRowKeys(blockId) {
-    if (this._assignedBlocks.has(blockId)) {
-      return [...this._assignedBlocks.get(blockId)];
-    }
-  }
-
   // Enfernt einen Block und die Zuordnung zu Datenzeilen
   deleteBlock(blockId) {
     if (this._blockData.has(blockId)) {
       this._blockData.delete(blockId);
-      this._assignedBlocks.delete(blockId);
     }
   }
 
@@ -231,13 +223,15 @@ class TableDataService extends Service {
   getAssignedBlocks() {
     const assignedBlocks = [];
 
-    for (const [blockId, rowKeys] of this._assignedBlocks.entries()) {
-      const block = this._blockData.get(blockId);
+    for (const block of this._blockData.values()) {
+      const [startDayOfYearIdx, endDayOfYearIdx] = this._assingedDayIndices.get(
+        block.blockId
+      );
       assignedBlocks.push({
-        startDayOfYearIdx: block.startDayOfYearIdx,
-        endDayOfYearIdx: block.endDayOfYearIdx,
+        startDayOfYearIdx,
+        endDayOfYearIdx,
         type: block.type,
-        rowKeys,
+        rowKeys: block.rowKeys,
       });
     }
 
@@ -249,8 +243,8 @@ class TableDataService extends Service {
   generateBlockDataRenderObjects() {
     const blockDataRenderObjects = [];
 
-    for (const [blockId, assignedRows] of this._assignedBlocks) {
-      const dataRowIndices = assignedRows.map((k) => {
+    for (const block of this._blockData.values()) {
+      const dataRowIndices = block.rowKeys.map((k) => {
         const i = this._registeredRowKeys.indexOf(k);
         return i;
       });
@@ -288,16 +282,17 @@ class TableDataService extends Service {
       }
       //////////////////
       dataRowIndicesClusters.forEach((dataRowIndices) => {
-        const block = this._blockData.get(blockId);
+        const [startDayOfYearIdx, endDayOfYearIdx] =
+          this._assingedDayIndices.get(block.blockId);
         const blockType = this._registeredBlockTypes.get(block.type);
 
         const row_key_list = dataRowIndices
           .map((i) => this._registeredRowKeys[i])
           .join("-");
         blockDataRenderObjects.push({
-          id: blockId,
-          startDayOfYearIdx: block.startDayOfYearIdx,
-          endDayOfYearIdx: block.endDayOfYearIdx,
+          id: block.blockId,
+          startDayOfYearIdx,
+          endDayOfYearIdx,
           labels: blockType.data.labels,
           color: blockType.data.color,
           row_key_list: row_key_list,
@@ -313,15 +308,14 @@ class TableDataService extends Service {
   getBlockDataIntervalsForRowIdx(rowIdx) {
     const rowKey = this._registeredRowKeys[rowIdx];
     const assignedBlockIds = [];
-    for (const [blockId, assignedRows] of this._assignedBlocks) {
-      if (assignedRows.includes(rowKey)) {
-        assignedBlockIds.push(blockId);
+    for (const block of this._blockData.values()) {
+      if (block.rowKeys.includes(rowKey)) {
+        assignedBlockIds.push(block.blockId);
       }
     }
 
     const blockDataIntervals = assignedBlockIds.map((blockId) => {
-      const block = this._blockData.get(blockId);
-      return new Interval(block.startDayOfYearIdx, block.endDayOfYearIdx);
+      return new Interval(...this._assingedDayIndices.get(blockId));
     });
     blockDataIntervals.sort((i1, i2) => i1.start - i2.start);
     return blockDataIntervals;
