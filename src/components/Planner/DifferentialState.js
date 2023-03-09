@@ -201,17 +201,17 @@ class DifferentialStateManager {
     console.log("additions:", additions);
     if (api) {
       const deleteTasks = [];
-      deletions.forEach(async function (blockData) {
+      deletions.forEach(function (blockData) {
         deleteTasks.push(api.delete(blockData.blockId));
       });
 
       const updateTasks = [];
-      updates.forEach(async function (blockData) {
+      updates.forEach(function (blockData) {
         updateTasks.push(api.update(blockData));
       });
 
       const createTasks = [];
-      additions.forEach(async function (blockData) {
+      additions.forEach(function (blockData) {
         createTasks.push(api.create(blockData));
       });
 
