@@ -196,9 +196,18 @@ class DifferentialStateManager {
 
   async apply(api = undefined) {
     const { deletions, updates, additions } = this._prepareTasks();
+
+    if (
+      deletions.length === 0 &&
+      updates.length === 0 &&
+      additions.length === 0
+    )
+      return;
+
     console.log("deletions:", deletions);
     console.log("updates:", updates);
     console.log("additions:", additions);
+
     if (api) {
       const deleteTasks = [];
       deletions.forEach(function (blockData) {
