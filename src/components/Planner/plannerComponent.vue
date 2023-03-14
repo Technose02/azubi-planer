@@ -164,6 +164,7 @@ import IconEdit from "../icons/IconEdit.vue";
 import { createBlock } from "./Block";
 
 export default {
+  name: "PlannerComponent",
   data() {
     return {
       serviceManager: [],
@@ -171,7 +172,6 @@ export default {
       blockTypeData: undefined,
     };
   },
-  name: "planner",
   props: {
     year: Number,
     weekDayMask: Array,
@@ -317,7 +317,6 @@ export default {
         this.serviceManager.tableDataService.resetBlockTypes(
           this.blockTypeData
         );
-
         this.$emit("initialized");
       }
     },

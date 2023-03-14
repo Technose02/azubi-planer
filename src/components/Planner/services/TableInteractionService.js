@@ -1,4 +1,4 @@
-import Interval from "../../Interval";
+import Interval from "./../Interval";
 import Service from "./Service";
 import { createBlock } from "../Block.js";
 

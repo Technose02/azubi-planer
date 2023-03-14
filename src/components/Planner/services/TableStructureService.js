@@ -1,5 +1,5 @@
 import Service from "./Service";
-import Interval from "./../../Interval";
+import Interval from "./../Interval";
 import GridAssistant from "./../GridAssistant";
 
 class TableStructureService extends Service {

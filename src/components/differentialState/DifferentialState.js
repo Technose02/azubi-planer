@@ -1,4 +1,4 @@
-import { INTERNAL_ID_PREFIX } from "./services/Constants.js";
+import { INTERNAL_ID_PREFIX } from "../../Constants.js";
 
 class DifferentialState {
   static _TYPE_ADD = "add";

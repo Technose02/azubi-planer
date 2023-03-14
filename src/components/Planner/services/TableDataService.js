@@ -1,7 +1,7 @@
 import Service from "./Service";
 import { assert } from "@vue/compiler-core";
-import Interval from "./../../Interval";
-import { INTERNAL_ID_PREFIX } from "./Constants.js";
+import Interval from "./../Interval";
+import { INTERNAL_ID_PREFIX } from "../../../constants.js";
 
 class TableDataService extends Service {
   _UNSPECIFIED_TYPE = "unspezifiziert";
