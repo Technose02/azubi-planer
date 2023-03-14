@@ -5,8 +5,15 @@ class DifferentialState {
   static _TYPE_UPDATE = "update";
   static _TYPE_DELETE = "delete";
 
-  constructor(planner_view, blockData, description, type) {
-    this._planner_view = planner_view;
+  constructor(
+    addBlockFunction,
+    deleteBlockFunction,
+    blockData,
+    description,
+    type
+  ) {
+    this._addBlockFunction = addBlockFunction;
+    this._deleteBlockFunction = deleteBlockFunction;
     this._blockData = blockData;
     this._description = description;
     this._type = type;
@@ -21,46 +28,54 @@ class DifferentialState {
 }
 
 class BlockAddedDiffState extends DifferentialState {
-  constructor(planner_view, blockData) {
+  constructor(addBlockFunction, deleteBlockFunction, blockData) {
     super(
-      planner_view,
+      addBlockFunction,
+      deleteBlockFunction,
       blockData,
       `block ${blockData.blockId} added`,
       DifferentialState._TYPE_ADD
     );
   }
   redo() {
-    this._planner_view.addBlockData(this._blockData);
+    this._addBlockFunction(this._blockData);
   }
   undo() {
     console.log(this);
-    this._planner_view.deleteBlock(this._blockData.blockId);
+    this._deleteBlockFunction(this._blockData.blockId);
   }
 }
 
 class BlockDeletedDiffState extends DifferentialState {
-  constructor(planner_view, blockData) {
+  constructor(addBlockFunction, deleteBlockFunction, blockData) {
     super(
-      planner_view,
+      addBlockFunction,
+      deleteBlockFunction,
       blockData,
       `block ${blockData.blockId} deleted`,
       DifferentialState._TYPE_DELETE
     );
   }
   redo() {
-    this._planner_view.deleteBlock(this._blockData.blockId);
+    this._deleteBlockFunction(this._blockData.blockId);
   }
   undo() {
-    this._planner_view.addBlockData(this._blockData);
+    this._addBlockFunction(this._blockData);
   }
 }
 
 class BlockUpdatedDiffState extends DifferentialState {
   _blockDataBefore;
 
-  constructor(planner_view, blockData, blockDataBefore) {
+  constructor(
+    addBlockFunction,
+    deleteBlockFunction,
+    blockData,
+    blockDataBefore
+  ) {
     super(
-      planner_view,
+      addBlockFunction,
+      deleteBlockFunction,
       blockData,
       `updated type of block ${blockData.blockId}`,
       DifferentialState._TYPE_UPDATE
@@ -69,18 +84,20 @@ class BlockUpdatedDiffState extends DifferentialState {
   }
 
   redo() {
-    this._planner_view.deleteBlock(this._blockDataBefore.blockId);
-    this._planner_view.addBlockData(this._blockData);
+    this._deleteBlockFunction(this._blockDataBefore.blockId);
+    this._addBlockFunction(this._blockData);
   }
   undo() {
-    this._planner_view.deleteBlock(this._blockDataBefore.blockId);
-    this._planner_view.addBlockData(this._blockDataBefore);
+    this._deleteBlockFunction(this._blockDataBefore.blockId);
+    this._addBlockFunction(this._blockDataBefore);
   }
 }
 
 class DifferentialStateManager {
-  constructor(planner_view) {
-    this._planner_view = planner_view;
+  constructor(addBlockFunction, deleteBlockFunction, resetBlockDataFunction) {
+    this._addBlockFunction = addBlockFunction;
+    this._deleteBlockFunction = deleteBlockFunction;
+    this._resetBlockDataFunction = resetBlockDataFunction;
     this._head = -1;
     this._stack = [];
   }
@@ -96,17 +113,30 @@ class DifferentialStateManager {
   }
 
   pushBlockAddedDiffState(blockdata) {
-    this._push(new BlockAddedDiffState(this._planner_view, blockdata));
+    this._push(
+      new BlockAddedDiffState(
+        this._addBlockFunction,
+        this._deleteBlockFunction,
+        blockdata
+      )
+    );
   }
 
   pushBlockDeletedDiffState(block_data) {
-    this._push(new BlockDeletedDiffState(this._planner_view, block_data));
+    this._push(
+      new BlockDeletedDiffState(
+        this._addBlockFunction,
+        this._deleteBlockFunction,
+        block_data
+      )
+    );
   }
 
   pushBlockUpdatedDiffState(block_data_after, block_data_before) {
     this._push(
       new BlockUpdatedDiffState(
-        this._planner_view,
+        this._addBlockFunction,
+        this._deleteBlockFunction,
         block_data_after,
         block_data_before
       )
@@ -228,7 +258,7 @@ class DifferentialStateManager {
       await Promise.all(updateTasks);
       await Promise.all(createTasks);
 
-      api.getAll().then((data) => this._planner_view.resetBlockData(data));
+      api.getAll().then((data) => this._resetBlockDataFunction(data));
     }
   }
 
@@ -245,8 +275,16 @@ class DifferentialStateManager {
   }
 }
 
-const createDifferentialStateManager = function (planner_view) {
-  return new DifferentialStateManager(planner_view);
+const createDifferentialStateManager = function (
+  addBlockFunction,
+  deleteBlockFunction,
+  resetBlockDataFunction
+) {
+  return new DifferentialStateManager(
+    addBlockFunction,
+    deleteBlockFunction,
+    resetBlockDataFunction
+  );
 };
 
 export default createDifferentialStateManager;

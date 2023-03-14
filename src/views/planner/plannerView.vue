@@ -11,7 +11,7 @@
       @block-added="onBlockAdded"
       @block-deleted="onBlockDeleted"
       @block-updated="onBlockUpdated"
-      @keydown.stop.prevent="onKeyPress($event)"
+      @keydown.stop.prevent="onKeyPress"
       @initialized="onInitialized"
       @planner-ready="plannerReady = $event"
       tabindex="-1"
@@ -49,7 +49,9 @@ export default {
     watch(plannerComponent, (cur, old) => {
       if (!cur || cur === old) return;
       differentialStateManager.value = createDifferentialStateManager(
-        plannerComponent.value
+        plannerComponent.value.addBlockData,
+        plannerComponent.value.deleteBlock,
+        plannerComponent.value.resetBlockData
       );
       apiClient.value.getUiDataDisplaynames().then((data) => {
         plannerComponent.value.initDataHeaderRows(data);
