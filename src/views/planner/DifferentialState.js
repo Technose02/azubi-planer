@@ -94,10 +94,16 @@ class BlockUpdatedDiffState extends DifferentialState {
 }
 
 class DifferentialStateManager {
-  constructor(addBlockFunction, deleteBlockFunction, resetBlockDataFunction) {
+  constructor(
+    addBlockFunction,
+    deleteBlockFunction,
+    resetBlockDataFunction,
+    callback
+  ) {
     this._addBlockFunction = addBlockFunction;
     this._deleteBlockFunction = deleteBlockFunction;
     this._resetBlockDataFunction = resetBlockDataFunction;
+    this._callback = callback;
     this._head = -1;
     this._stack = [];
   }
@@ -110,6 +116,18 @@ class DifferentialStateManager {
     }
     this._stack.push(diffState);
     this._head = this._stack.length - 1;
+    this._notify();
+  }
+
+  _notify() {
+    if (this._callback) {
+      const state = {
+        undo_count: this._head + 1,
+        redo_count: this._stack.length - 1 - this._head,
+        tasks: this._prepareTasks(),
+      };
+      this._callback(state);
+    }
   }
 
   pushBlockAddedDiffState(blockdata) {
@@ -147,6 +165,7 @@ class DifferentialStateManager {
     if (this._head >= 0) {
       this._stack[this._head].undo();
       this._head -= 1;
+      this._notify();
       return true;
     }
     return false;
@@ -156,6 +175,7 @@ class DifferentialStateManager {
     if (this._head < this._stack.length - 1) {
       this._head += 1;
       this._stack[this._head].redo();
+      this._notify();
       return true;
     }
     return false;
@@ -178,9 +198,6 @@ class DifferentialStateManager {
         console.err("error: unknown differentialState has unknown type!");
       }
     }
-
-    this._head = -1;
-    this._stack = [];
 
     // clean internal deletions
     // Blöcke mit interner ID wurden im Rahmen der Transaktion erstellt. Sie sind
@@ -224,6 +241,13 @@ class DifferentialStateManager {
     };
   }
 
+  resetStack() {
+    // reset stack:
+    this._head = -1;
+    this._stack = [];
+    this._notify();
+  }
+
   async apply(api = undefined) {
     const { deletions, updates, additions } = this._prepareTasks();
 
@@ -233,10 +257,6 @@ class DifferentialStateManager {
       additions.length === 0
     )
       return;
-
-    console.log("deletions:", deletions);
-    console.log("updates:", updates);
-    console.log("additions:", additions);
 
     if (api) {
       const deleteTasks = [];
@@ -254,11 +274,15 @@ class DifferentialStateManager {
         createTasks.push(api.create(blockData));
       });
 
+      this.resetStack();
+
       await Promise.all(deleteTasks);
       await Promise.all(updateTasks);
       await Promise.all(createTasks);
 
-      api.getAll().then((data) => this._resetBlockDataFunction(data));
+      api.getAll().then((data) => {
+        this._resetBlockDataFunction(data);
+      });
     }
   }
 
@@ -278,12 +302,14 @@ class DifferentialStateManager {
 const createDifferentialStateManager = function (
   addBlockFunction,
   deleteBlockFunction,
-  resetBlockDataFunction
+  resetBlockDataFunction,
+  callback
 ) {
   return new DifferentialStateManager(
     addBlockFunction,
     deleteBlockFunction,
-    resetBlockDataFunction
+    resetBlockDataFunction,
+    callback
   );
 };
 

@@ -1,24 +1,18 @@
 <template>
-  <header>
-    <h1>Azubi-Blockplanung für {{ year }}</h1>
-  </header>
   <body>
-    <plannerView :year="year"></plannerView>
+    <router-view :key="route.fullPath"></router-view>
   </body>
 </template>
 <script>
-import PlannerView from "./views/planner/plannerView.vue";
-import { ref } from "vue";
+import { useRoute } from "vue-router";
 
 export default {
-  components: {
-    PlannerView,
-  },
+  name: "App",
+  components: {},
   setup() {
-    const year = ref(2023);
-
+    const route = useRoute();
     return {
-      year,
+      route,
     };
   },
 };

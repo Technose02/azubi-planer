@@ -1,6 +1,19 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from "vue";
+import App from "./app.vue";
+import "./assets/main.css";
+import { createRouter, createWebHashHistory } from "vue-router";
 
-import './assets/main.css'
+import PlannerView from "./views/planner/plannerView.vue";
 
-createApp(App).mount('#app')
+const app = createApp(App);
+
+const routes = [{ path: "/blockplanung/:year?", component: PlannerView }];
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes: routes,
+  linkActiveClass: "active",
+});
+
+app.use(router);
+app.mount("#app");

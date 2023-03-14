@@ -1,26 +1,35 @@
 <template>
-  <div class="planner-container">
-    <p class="loading-screen" v-if="!plannerReady" tabindex="-1">
-      <em>Loading...</em>
-    </p>
-    <plannerComponent
-      ref="plannerComponent"
-      :year="year"
-      selection-color-valid="#0000FF0F"
-      selection-color-invalid="#FF000030"
-      @block-added="onBlockAdded"
-      @block-deleted="onBlockDeleted"
-      @block-updated="onBlockUpdated"
-      @keydown.stop.prevent="onKeyPress"
-      @initialized="onInitialized"
-      @planner-ready="plannerReady = $event"
-      tabindex="-1"
-      :class="[plannerReady ? '' : 'invisible']"
-    ></plannerComponent>
-    <a class="btn btn--apply" @click="onApply" v-if="plannerReady"
-      >Übernehmen</a
-    >
-  </div>
+  <header>
+    <h1>Azubi-Blockplanung für {{ year }}</h1>
+  </header>
+  <main>
+    <div class="planner-container">
+      <p class="loading-screen" v-if="!plannerReady" tabindex="-1">
+        <em>Loading...</em>
+      </p>
+      <plannerComponent
+        ref="plannerComponent"
+        :year="year"
+        selection-color-valid="#0000FF0F"
+        selection-color-invalid="#FF000030"
+        @block-added="onBlockAdded"
+        @block-deleted="onBlockDeleted"
+        @block-updated="onBlockUpdated"
+        @keydown.stop.prevent="onKeyPress"
+        @initialized="onInitialized"
+        @planner-ready="plannerReady = $event"
+        tabindex="-1"
+        :class="[plannerReady ? '' : 'invisible']"
+      ></plannerComponent>
+      <a
+        class="btn btn--apply"
+        @click="onApply"
+        v-if="plannerReady"
+        :class="[applyTasksCount > 0 ? '' : 'invisible']"
+        >Übernehmen</a
+      >
+    </div>
+  </main>
 </template>
 <script>
 import { ref, watch } from "vue";
@@ -28,30 +37,51 @@ import PlannerComponent from "./../../components/planner/plannerComponent.vue";
 import createDifferentialStateManager from "./DifferentialState.js";
 import ApiClient from "./apiclient/ApiClient.js";
 import MockedApiClient from "./apiclient/MockedApiClient.js";
+import { useRoute, useRouter } from "vue-router";
 
 export default {
   components: {
     PlannerComponent,
   },
-  props: {
-    year: Number,
-  },
-  setup(props) {
-    const year = ref(props.year);
+  setup() {
+    const year = ref(undefined);
     const plannerReady = ref(false);
     const differentialStateManager = ref([]);
     const apiClient = ref(undefined);
     const plannerComponent = ref(undefined);
+    const undoCount = ref(0);
+    const redoCount = ref(0);
+    const applyTasksCount = ref(0);
+
+    const route = useRoute();
+    const router = useRouter();
+
+    const tmpYearValue = Number.parseInt(route.params["year"]);
+    if (!Number.isFinite(tmpYearValue)) {
+      let altRoute = route.fullPath;
+      altRoute += altRoute.endsWith("/") ? "" : "/";
+      altRoute += `${new Date().getFullYear()}`;
+      router.push(altRoute);
+    } else {
+      year.value = tmpYearValue;
+    }
 
     //apiClient.value = new MockedApiClient(props.year);
     apiClient.value = new ApiClient("http://localhost:8080/api", year.value);
 
-    watch(plannerComponent, (cur, old) => {
+    const unwatchPlannerComponent = watch(plannerComponent, (cur, old) => {
       if (!cur || cur === old) return;
       differentialStateManager.value = createDifferentialStateManager(
         plannerComponent.value.addBlockData,
         plannerComponent.value.deleteBlock,
-        plannerComponent.value.resetBlockData
+        plannerComponent.value.resetBlockData,
+        (e) => {
+          ({ undo_count: undoCount.value, redo_count: redoCount.value } = e);
+          applyTasksCount.value =
+            e.tasks.additions.length +
+            e.tasks.deletions.length +
+            e.tasks.updates.length;
+        }
       );
       apiClient.value.getUiDataDisplaynames().then((data) => {
         plannerComponent.value.initDataHeaderRows(data);
@@ -59,6 +89,7 @@ export default {
       apiClient.value.getUiDataBlocktypes().then((data) => {
         plannerComponent.value.initBlockTypes(data);
       });
+      unwatchPlannerComponent();
     });
 
     function onBlockAdded(event) {
@@ -115,6 +146,9 @@ export default {
       onKeyPress,
       onInitialized,
       onApply,
+      undoCount,
+      redoCount,
+      applyTasksCount,
     };
   },
 };
@@ -123,7 +157,10 @@ export default {
 <style scoped>
 h1 {
   display: inline-block;
-  margin-bottom: 2rem;
+  font-size: 5rem;
+  margin-top: 2rem;
+  margin-left: 4rem;
+  margin-bottom: 4rem;
 }
 
 .planner-container {
@@ -148,7 +185,7 @@ h1 {
   color: black;
   border: 0.3rem solid #cfcfcf;
   user-select: none;
-  align-self: center;
+  /*align-self: center;*/
 }
 
 .btn:hover {
@@ -157,5 +194,10 @@ h1 {
 }
 .btn:active {
   background-color: #7acaff;
+}
+
+.btn--apply {
+  left: 0px;
+  position: sticky;
 }
 </style>
