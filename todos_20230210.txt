@@ -1,6 +1,0 @@
-- im TableStructureService mit dem Cachen hinterherkommen
-- Kontext-Menus an Mausposition ausrichten
-- PlannerEntry komplett ablösen
-- Blöcke auch anzeigen, wenn Start oder Ende außerhalb des Anzeigebereichs
-  und dann auch nur den Teil anzeigen, der im Anzeigebereich liegt (anzeigen ;
-  trotzdem Info ermöglichen, wann wirklich Start/Ende!)
